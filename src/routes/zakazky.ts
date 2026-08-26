@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { config } from '../config.js';
 import { prisma } from '../db.js';
 import { jePlatnyPosun, STAVY, type Stav } from '../domain/stav.js';
 import { pobockaZUtvaru, utvarProApi } from '../domain/utvar.js';
@@ -33,6 +34,8 @@ function doOdpovedi(zakazka: ZakazkaSVazbami) {
     serviceAdvisorName: null,
     bay: zakazka.dilensky?.stani ?? null,
     heliosStatus: zakazka.stavRealNazev,
+    isActive: zakazka.jeAktivni,
+    closedAt: zakazka.uzavrenaAt?.toISOString().slice(0, 19) ?? null,
     notes: zakazka.poznamky.map((p) => ({
       id: p.id,
       text: p.text,
@@ -57,13 +60,65 @@ const nenalezena = {
 };
 
 export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
+  /**
+   * Seznam pro telefon: **jen rozdělané zakázky** z posledních měsíců
+   * (`SEZNAM_MESICU`). Uzavřené se sem schválně neposílají - je jich
+   * desítky tisíc a aplikace si seznam drží v paměti, aby filtrovala
+   * a hledala bez čekání. Starší se dohledávají přes `/orders/search`.
+   */
   server.get('/orders', async () => {
+    const od = new Date();
+    od.setMonth(od.getMonth() - config.SEZNAM_MESICU);
+
     const zakazky = await prisma.heliosZakazka.findMany({
+      where: { jeAktivni: true, datumPrijeti: { gte: od } },
       include: sVazbami,
       orderBy: { terminDokonceni: 'asc' },
     });
     return zakazky.map(doOdpovedi);
   });
+
+  /**
+   * Hledání napříč celým archivem, včetně uzavřených zakázek.
+   *
+   * Slouží k dohledání staré zakázky - typicky kvůli fotodokumentaci,
+   * podle SPZ nebo VIN načteného fotoaparátem. Hledá se na serveru, takže
+   * na velikosti archivu nezáleží; přenáší se jen nalezené.
+   */
+  server.get<{ Querystring: { q?: string } }>(
+    '/orders/search',
+    async (request, reply) => {
+      const dotaz = (request.query.q ?? '').trim();
+      if (dotaz.length < 3) {
+        return reply.code(400).send({
+          error: {
+            code: 'bad_request',
+            message: 'Zadejte alespoň tři znaky.',
+          },
+        });
+      }
+
+      // Mezery ve VIN a SPZ se z OCR čtou nespolehlivě, tak je ignorujeme.
+      const bezMezer = dotaz.replace(/\s+/g, '');
+
+      const zakazky = await prisma.heliosZakazka.findMany({
+        where: {
+          OR: [
+            { cisloZakazky: { contains: bezMezer } },
+            { vin: { contains: bezMezer } },
+            { spz: { contains: dotaz } },
+            { spz: { contains: bezMezer } },
+            { zakaznik: { contains: dotaz } },
+          ],
+        },
+        include: sVazbami,
+        orderBy: { datumPrijeti: 'desc' },
+        take: config.HLEDANI_LIMIT,
+      });
+
+      return zakazky.map(doOdpovedi);
+    },
+  );
 
   server.get<{ Params: { id: string } }>('/orders/:id', async (request, reply) => {
     const zakazka = await nactiJednu(request.params.id);

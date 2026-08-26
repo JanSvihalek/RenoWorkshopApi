@@ -33,6 +33,8 @@ CREATE TABLE [dbo].[helios_zakazky] (
     [stav_real_cislo] INT,
     [stav_real_nazev] NVARCHAR(100),
     [videno_at] DATETIME2 NOT NULL,
+    [je_aktivni] BIT NOT NULL CONSTRAINT [helios_zakazky_je_aktivni_df] DEFAULT 1,
+    [uzavrena_at] DATETIME2,
     CONSTRAINT [helios_zakazky_pkey] PRIMARY KEY CLUSTERED ([cislo_zakazky])
 );
 
@@ -70,6 +72,15 @@ CREATE TABLE [dbo].[synchronizace] (
 
 -- CreateIndex
 CREATE NONCLUSTERED INDEX [helios_zakazky_utvar_kod_idx] ON [dbo].[helios_zakazky]([utvar_kod]);
+
+-- CreateIndex
+CREATE NONCLUSTERED INDEX [helios_zakazky_je_aktivni_termin_dokonceni_idx] ON [dbo].[helios_zakazky]([je_aktivni], [termin_dokonceni]);
+
+-- CreateIndex
+CREATE NONCLUSTERED INDEX [helios_zakazky_spz_idx] ON [dbo].[helios_zakazky]([spz]);
+
+-- CreateIndex
+CREATE NONCLUSTERED INDEX [helios_zakazky_vin_idx] ON [dbo].[helios_zakazky]([vin]);
 
 -- CreateIndex
 CREATE NONCLUSTERED INDEX [poznamky_cislo_zakazky_vytvoreno_at_idx] ON [dbo].[poznamky]([cislo_zakazky], [vytvoreno_at]);

@@ -21,6 +21,8 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
     const zakazky = await nactiZakazky();
     const ted = new Date();
 
+    // Pohled v_renoworkshop_zakazky vrací jen rozdělané zakázky; tahle
+    // pojistka je pro případ, že by se filtr v pohledu někdy změnil.
     const aktivni = zakazky.filter((z) => !jeUkoncena(z.stav_real));
 
     for (const z of aktivni) {
@@ -28,6 +30,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
         where: { cisloZakazky: z.c_zakazky },
         create: {
           cisloZakazky: z.c_zakazky,
+          jeAktivni: true,
           spz: z.spz,
           vin: z.vin,
           model: z.model,
@@ -43,6 +46,9 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           dilensky: { create: { stav: vychoziStav(z.stav_real) } },
         },
         update: {
+          // Zakázka se může na dílnu vrátit (reklamace, dodělávka).
+          jeAktivni: true,
+          uzavrenaAt: null,
           spz: z.spz,
           vin: z.vin,
           model: z.model,
@@ -58,10 +64,12 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
       });
     }
 
-    // Co Helios přestal vracet, je uzavřené nebo zrušené. Mizí i s naším
-    // stavem a poznámkami - archiv řešit nemusíme, historii vede Helios.
-    await prisma.heliosZakazka.deleteMany({
-      where: { videnoAt: { lt: ted } },
+    // Co Helios přestal vracet mezi aktivními, se **označí jako uzavřené**.
+    // Nemaže se: k poznámkám a fotodokumentaci se lidé vracejí i po roce
+    // a Helios je nezná, takže by je nikdo neobnovil.
+    await prisma.heliosZakazka.updateMany({
+      where: { jeAktivni: true, videnoAt: { lt: ted } },
+      data: { jeAktivni: false, uzavrenaAt: ted },
     });
 
     await prisma.synchronizace.update({

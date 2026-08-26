@@ -6,9 +6,10 @@
 //
 // Záměrně jsou to dvě oddělené skupiny tabulek:
 //
-//   helios_*   zrcadlo Heliosu. Synchronizace je přepisuje, jsou to kopie
-//              a kdykoli se dají zahodit a natáhnout znovu. Zatím jen
-//              zakázky; úkony (závady) se z Heliosu netahají.
+//   helios_*   zrcadlo Heliosu. Synchronizace přepisuje jejich obsah, ale
+//              **nikdy nic nemaže** - k uzavřeným zakázkám se lidé vracejí
+//              kvůli fotodokumentaci. Zatím jen zakázky; úkony (závady)
+//              se z Heliosu netahají.
 //   dilenske_* naše data, která v Heliosu neexistují. Synchronizace na ně
 //              nikdy nesahá, jinak by přišli mechanici o práci.
 //
@@ -40,14 +41,26 @@ model HeliosZakazka {
   stavRealCislo   Int?      @map("stav_real_cislo")
   stavRealNazev   String?   @map("stav_real_nazev") @db.NVarChar(100)
 
-  /// Kdy zakázku naposledy potvrdila synchronizace. Co tu chybí déle,
-  /// z Heliosu zmizelo nebo se uzavřelo.
+  /// Kdy zakázku naposledy potvrdila synchronizace mezi aktivními.
   videnoAt DateTime @map("videno_at") @db.DateTime2
+
+  /// Stojí vůz na dílně? Uzavřená zakázka se **nikdy nemaže** - drží se
+  /// kvůli poznámkám a fotodokumentaci, ke které se lidé vracejí i po roce.
+  /// Do seznamu v telefonu se neposílá, dohledá se hledáním.
+  jeAktivni Boolean @default(true) @map("je_aktivni")
+
+  /// Kdy zakázka zmizela z aktivních. `null` = pořád na dílně.
+  uzavrenaAt DateTime? @map("uzavrena_at") @db.DateTime2
 
   dilensky DilenskyStav?
   poznamky Poznamka[]
 
   @@index([utvarKod])
+  // Seznam v telefonu se ptá právě takhle: aktivní, seřazené podle termínu.
+  @@index([jeAktivni, terminDokonceni])
+  // Hledání v archivu podle SPZ nebo VIN.
+  @@index([spz])
+  @@index([vin])
   @@map("helios_zakazky")
 }
 

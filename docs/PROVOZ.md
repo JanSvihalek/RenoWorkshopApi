@@ -46,7 +46,7 @@ Služba má vlastní databázi a v ní dvě oddělené skupiny tabulek:
 
 | Tabulky | Kdo je vlastní | Co s nimi dělá synchronizace |
 |---|---|---|
-| `helios_zakazky` | Helios | přepisuje je, jsou to kopie |
+| `helios_zakazky` | Helios | přepisuje obsah, ale **nic nemaže** |
 | `dilenske_stavy`, `poznamky` | RenoWorkshop | **nesahá na ně** |
 
 Úkony (závady) se z Heliosu zatím netahají - aplikace dostane prázdný
@@ -67,8 +67,11 @@ Jeden běh vypadá takhle:
    jí **výchozí dílenský stav odvozený z Heliosu** (`42 Nenaskladněno` → čeká
    na díly, `30 Zpracováváno` → v opravě, `36 K fakturaci` → připraveno).
    U už známé zakázky se dílenského stavu nedotkne.
-5. Smaže zakázky, které Helios v tomhle běhu nevrátil — jsou uzavřené nebo
-   zrušené. Mizí i s poznámkami a dílenským stavem; historii vede Helios.
+5. Zakázky, které Helios v tomhle běhu nevrátil mezi aktivními, **označí
+   jako uzavřené** (`je_aktivni = 0`). Nemaže je — k poznámkám a
+   fotodokumentaci se lidé vracejí i po roce a Helios je nezná, takže by
+   je nikdo neobnovil. Zakázka se může i vrátit na dílnu (reklamace),
+   pak se příznak zase přepne.
 6. Doplní do `synchronizace` konec běhu a počet zakázek, nebo chybu.
 
 **Výpadek Heliosu službu neshodí.** Chyba se zapíše, aplikace dál ukazuje
@@ -80,9 +83,17 @@ Je omezená na **jedno volání za minutu pro celou dílnu**, další dostane `4
 
 ## Co se děje při práci v aplikaci
 
-**Otevření seznamu** — `GET /api/orders` čte jen z naší databáze, do Heliosu
-nesahá. Odpověď je jeden dotaz do lokální databáze, takže je rychlá i na
-dílenské wi-fi. Data mohou být až pět minut stará.
+**Otevření seznamu** — `GET /api/orders` vrací **jen rozdělané zakázky za
+poslední tři měsíce** (`SEZNAM_MESICU`). Uzavřených jsou desítky tisíc a
+aplikace si seznam drží v paměti, aby filtrovala a hledala bez čekání —
+proto se do telefonu neposílají. Čte se jen z naší databáze, do Heliosu
+se přitom nesahá. Data mohou být až pět minut stará.
+
+**Dohledání staré zakázky** — `GET /api/orders/search?q=...` prohledá
+**celý archiv** včetně uzavřených, podle čísla zakázky, VIN, SPZ nebo
+zákazníka. Hledá se na serveru, takže na velikosti archivu nezáleží;
+přenáší se jen nalezené (nejvýš `HLEDANI_LIMIT`). Typický případ je
+dohledání fotodokumentace k roční zakázce.
 
 **Posun stavu** — `PATCH /api/orders/{id}`. Služba ověří, že jde o posun
 o jeden krok dopředu (aplikace jiný nenabízí, ale spoléhat se na to nedá),
