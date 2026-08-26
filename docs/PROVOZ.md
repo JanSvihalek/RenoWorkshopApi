@@ -13,14 +13,15 @@ Jan; tenhle dokument říká, co se kde děje a co od čeho závisí.
                                             │        │
                             čte každých 5 min        │ čte a zapisuje
                                             ▼        ▼
-                                   SQL Server     Postgres :5433
-                                   (linkovaný      (Docker)
-                                    server → Helios)
+                              pohledy nad Heliosem   databáze RenoWorkshop
+                              (linkovaný server)     (SQL Server)
 ```
 
-Čtyři věci musí běžet: **Postgres v Dockeru**, **Node služba**, **reverzní
-proxy v IIS** a **pohledy na SQL Serveru**. Helios sám o RenoWorkshopu neví
-a nic se do něj nezapisuje.
+Tři věci musí běžet: **Node služba**, **reverzní proxy v IIS** a **pohledy
+na SQL Serveru**. Helios sám o RenoWorkshopu neví a nic se do něj nezapisuje.
+
+Obojí je na SQL Serveru: pohledy nad Heliosem i naše databáze. Jsou to ale
+dvě různé databáze a dva různé loginy - ten k Heliosu má práva jen ke čtení.
 
 ## Přihlášení
 
@@ -78,7 +79,7 @@ Je omezená na **jedno volání za minutu pro celou dílnu**, další dostane `4
 
 ## Co se děje při práci v aplikaci
 
-**Otevření seznamu** — `GET /api/orders` čte jen z Postgresu, do Heliosu
+**Otevření seznamu** — `GET /api/orders` čte jen z naší databáze, do Heliosu
 nesahá. Odpověď je jeden dotaz do lokální databáze, takže je rychlá i na
 dílenské wi-fi. Data mohou být až pět minut stará.
 
@@ -101,7 +102,7 @@ takže se při každém ťuknutí nechodí na server.
 | Situace | Co uvidí mechanik | Co s tím |
 |---|---|---|
 | Helios nebo linkovaný server neodpovídá | data se přestanou obnovovat, poslední stav zůstane | `GET /health` ukáže chybu posledního běhu |
-| Postgres neběží | „Server hlásí chybu. Zkuste to za chvíli." | nastartovat kontejner |
+| databáze RenoWorkshop nedostupná | „Server hlásí chybu. Zkuste to za chvíli." | zkontrolovat SQL Server a login |
 | vypršelý token | „Přihlášení vypršelo." a návrat na přihlášení | přihlásit se znovu |
 | telefon bez signálu | „Server neodpovídá." po 15 vteřinách | zatím se posun stavu ztratí, offline fronta není |
 | zakázka uzavřena v Heliosu | zmizí ze seznamu po nejbližší synchronizaci | tak to má být |
@@ -113,8 +114,8 @@ problém v appce, nebo v datech.
 
 ## Co je potřeba nastavit
 
-1. **Postgres** — `docker compose up -d`, port 5433 (schválně jiný než 5432,
-   ať se nepere s Postgresem RenoDesku), heslo v `.env`.
+1. **Databáze** — na SQL Serveru založit databázi (třeba `RenoWorkshop`)
+   a login, který má práva **jen v ní**. Připojení patří do `DATABASE_URL`.
 2. **Tabulky** — `npx prisma migrate deploy`.
 3. **Pohledy na SQL Serveru** — skript `src/helios/dotazy.sql`. Pozor,
    server je starší než 2016 SP1, takže `create or alter view` neprojde;

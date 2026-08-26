@@ -25,11 +25,14 @@ V nejhorším případě se přepíše kopie, kterou příští běh natáhne zn
 
 ```bash
 npm install
-cp .env.example .env      # vyplnit hesla
-docker compose up -d      # Postgres na portu 5433
-npx prisma migrate dev    # založí tabulky
+cp .env.example .env       # vyplnit server, databázi a hesla
+npx prisma migrate deploy  # založí tabulky ve vlastní databázi
 npm run dev
 ```
+
+Databáze je **SQL Server** - vlastní databáze a vlastní login, ideálně na téže
+instanci, která má linkovaný server na Helios. Do produkčních databází ani do
+Heliosu služba nezapisuje.
 
 Na SQL Serveru je potřeba mít založené pohledy z
 [`src/helios/dotazy.sql`](src/helios/dotazy.sql) a účet s právem `SELECT`
@@ -40,10 +43,10 @@ nad nimi. Nic víc — do Heliosu se nikdy nezapisuje.
 | Cesta | Co je uvnitř |
 |---|---|
 | `src/domain/` | pravidla bez závislostí: útvary, pobočky, stavy zakázky |
-| `src/helios/` | čtení z Heliosu a synchronizace do Postgresu |
+| `src/helios/` | čtení z Heliosu a synchronizace do naší databáze |
 | `src/routes/` | REST endpointy podle kontraktu aplikace |
 | `src/auth.ts` | ověření Firebase ID tokenu |
-| `prisma/schema.prisma` | schéma provozní databáze |
+| `prisma/schema.prisma` | schéma provozní databáze (SQL Server) |
 
 Doménová vrstva je čistá a pokrytá testy (`npm test`) — právě v ní jsou
 pravidla, která se nejspíš budou měnit.
@@ -98,6 +101,6 @@ Napsané, ale zatím neověřené proti živým datům:
 
 Ještě chybí:
 
-- migrace a nasazení na RENDCAPP (Docker, reverzní proxy přes IIS)
+- založení databáze a nasazení (reverzní proxy přes IIS)
 - mechanik u zakázky — v Heliosu se zatím nenašel sloupec
 - fotodokumentace (viz kontrakt v aplikaci)

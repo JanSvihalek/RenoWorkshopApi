@@ -1,40 +1,47 @@
 // Schéma provozní databáze RenoWorkshopu.
 //
+// Běží na SQL Serveru RENOCARu, ve vlastní databázi a pod vlastním loginem.
+// Do produkčních databází ani do Heliosu služba nezapisuje - z Heliosu jen
+// čte přes pohledy `v_renoworkshop_*`.
+//
 // Záměrně jsou to dvě oddělené skupiny tabulek:
 //
-//   helios_*   zrcadlo Heliosu. Synchronizace je přepisuje, jsou to jen kopie
+//   helios_*   zrcadlo Heliosu. Synchronizace je přepisuje, jsou to kopie
 //              a kdykoli se dají zahodit a natáhnout znovu.
 //   dilenske_* naše data, která v Heliosu neexistují. Synchronizace na ně
 //              nikdy nesahá, jinak by přišli mechanici o práci.
 //
 // Spojuje je číslo zakázky (`reference_subjektu` z Heliosu).
+//
+// Pozor na typy: bez `@db.NVarChar` by texty skončily v `varchar` a diakritika
+// by se rozsypala.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
 
 /// Zakázka načtená z Heliosu. Přepisuje se každou synchronizací.
 model HeliosZakazka {
-  cisloZakazky    String    @id @map("cislo_zakazky")
-  spz             String?
-  vin             String?
-  model           String?
-  zakaznik        String?
-  utvarKod        String?   @map("utvar_kod")
-  utvarNazev      String?   @map("utvar_nazev")
-  datumPrijeti    DateTime? @map("datum_prijeti")
-  terminDokonceni DateTime? @map("termin_dokonceni")
+  cisloZakazky    String    @id @map("cislo_zakazky") @db.NVarChar(40)
+  spz             String?   @db.NVarChar(20)
+  vin             String?   @db.NVarChar(30)
+  model           String?   @db.NVarChar(200)
+  zakaznik        String?   @db.NVarChar(200)
+  utvarKod        String?   @map("utvar_kod") @db.NVarChar(20)
+  utvarNazev      String?   @map("utvar_nazev") @db.NVarChar(200)
+  datumPrijeti    DateTime? @map("datum_prijeti") @db.DateTime2
+  terminDokonceni DateTime? @map("termin_dokonceni") @db.DateTime2
   stavRealCislo   Int?      @map("stav_real_cislo")
-  stavRealNazev   String?   @map("stav_real_nazev")
+  stavRealNazev   String?   @map("stav_real_nazev") @db.NVarChar(100)
 
   /// Kdy zakázku naposledy potvrdila synchronizace. Co tu chybí déle,
   /// z Heliosu zmizelo nebo se uzavřelo.
-  videnoAt DateTime @map("videno_at")
+  videnoAt DateTime @map("videno_at") @db.DateTime2
 
   ukony    HeliosUkon[]
   dilensky DilenskyStav?
@@ -46,10 +53,10 @@ model HeliosZakazka {
 
 /// Úkon (závada) ze servisní zakázky. Text je z Heliosu, „hotovo" je naše.
 model HeliosUkon {
-  id           String  @id
-  cisloZakazky String  @map("cislo_zakazky")
-  nazev        String
-  hotovo       Boolean @default(false)
+  id           String   @id @db.NVarChar(60)
+  cisloZakazky String   @map("cislo_zakazky") @db.NVarChar(40)
+  nazev        String   @db.NVarChar(500)
+  hotovo       Boolean  @default(false)
   normohodiny  Decimal? @db.Decimal(6, 2)
 
   zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
@@ -60,12 +67,12 @@ model HeliosUkon {
 
 /// Dílenský stav zakázky - to, co v Heliosu není a co posouvají mechanici.
 model DilenskyStav {
-  cisloZakazky String   @id @map("cislo_zakazky")
-  stav         String
-  stani        String?
-  zmenenoKym   String?  @map("zmeneno_kym")
-  zmenenoUid   String?  @map("zmeneno_uid")
-  zmenenoAt    DateTime @updatedAt @map("zmeneno_at")
+  cisloZakazky String   @id @map("cislo_zakazky") @db.NVarChar(40)
+  stav         String   @db.NVarChar(40)
+  stani        String?  @db.NVarChar(60)
+  zmenenoKym   String?  @map("zmeneno_kym") @db.NVarChar(200)
+  zmenenoUid   String?  @map("zmeneno_uid") @db.NVarChar(128)
+  zmenenoAt    DateTime @updatedAt @map("zmeneno_at") @db.DateTime2
 
   zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
 
@@ -74,12 +81,12 @@ model DilenskyStav {
 
 /// Poznámka mechanika nebo poradce.
 model Poznamka {
-  id           String   @id @default(uuid())
-  cisloZakazky String   @map("cislo_zakazky")
-  text         String
-  autor        String
-  autorUid     String?  @map("autor_uid")
-  vytvorenoAt  DateTime @default(now()) @map("vytvoreno_at")
+  id           String   @id @default(uuid()) @db.NVarChar(40)
+  cisloZakazky String   @map("cislo_zakazky") @db.NVarChar(40)
+  text         String   @db.NVarChar(Max)
+  autor        String   @db.NVarChar(200)
+  autorUid     String?  @map("autor_uid") @db.NVarChar(128)
+  vytvorenoAt  DateTime @default(now()) @map("vytvoreno_at") @db.DateTime2
 
   zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
 
@@ -90,11 +97,11 @@ model Poznamka {
 /// Záznam o průběhu synchronizace - ať jde poznat, že Helios mlčí,
 /// dřív než se na to někdo zeptá.
 model Synchronizace {
-  id          Int      @id @default(autoincrement())
-  zacatekAt   DateTime @map("zacatek_at")
-  konecAt     DateTime? @map("konec_at")
-  pocetZakazek Int?    @map("pocet_zakazek")
-  chyba       String?
+  id           Int       @id @default(autoincrement())
+  zacatekAt    DateTime  @map("zacatek_at") @db.DateTime2
+  konecAt      DateTime? @map("konec_at") @db.DateTime2
+  pocetZakazek Int?      @map("pocet_zakazek")
+  chyba        String?   @db.NVarChar(Max)
 
   @@map("synchronizace")
 }
