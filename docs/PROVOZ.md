@@ -118,7 +118,8 @@ problém v appce, nebo v datech.
 
 1. **Databáze** — na SQL Serveru založit databázi (třeba `RenoWorkshop`)
    a login, který má práva **jen v ní**. Připojení patří do `DATABASE_URL`.
-2. **Tabulky** — `npx prisma migrate deploy`.
+2. **Tabulky** — buď `npx prisma migrate deploy`, nebo skript
+   [`docs/sql/tabulky.sql`](sql/tabulky.sql) v SSMS. Výsledek je stejný.
 3. **Linkovaný server** `RAS_HEN` na RENDCAPPu, mířící na Helios. Mapování
    přihlášení má používat vzdálený účet s právem **jen `SELECT`**, a to jen
    pro login služby - ostatní ať mají „Not be made", aby přes ten most
