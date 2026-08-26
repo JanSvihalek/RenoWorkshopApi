@@ -19,8 +19,9 @@ const schema = z.object({
 
   FIREBASE_PROJECT_ID: z.string().min(1),
 
-  PORT: z.coerce.number().int().default(8081),
-  HOST: z.string().default('0.0.0.0'),
+  PORT: z.coerce.number().int().default(8092),
+  // Jen zevnitř serveru; zvenčí se chodí přes reverzní proxy v IIS.
+  HOST: z.string().default('127.0.0.1'),
 });
 
 const vysledek = schema.safeParse(process.env);

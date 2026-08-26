@@ -9,7 +9,7 @@ Jan; tenhle dokument říká, co se kde děje a co od čeho závisí.
   telefon (RenoWorkshop)
         │  HTTPS, Bearer token
         ▼
-  IIS na RENDCAPP  ──reverzní proxy──►  Node služba :8081
+  IIS na RENDCAPP  ──reverzní proxy──►  Node služba :8092
                                             │        │
                             čte každých 5 min        │ čte a zapisuje
                                             ▼        ▼
@@ -138,7 +138,7 @@ problém v appce, nebo v datech.
 6. **Node služba** — `npm ci && npm run build && node dist/server.js`.
    Musí se spouštět po startu serveru; jak, je na tobě (Windows služba přes
    nssm, nebo kontejner — podle toho, jak běží RenoDesk).
-7. **Reverzní proxy v IIS** z veřejné cesty na `http://localhost:8081`.
+7. **Reverzní proxy v IIS** z veřejné cesty na `http://localhost:8092`.
    Na RENDCAPPu běží cizí produkční aplikace, takže **žádný `iisreset`** —
    jen restart konkrétního webu.
 
