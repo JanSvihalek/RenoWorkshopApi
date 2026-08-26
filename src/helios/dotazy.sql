@@ -47,8 +47,12 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
             ON hlv.vozidlo = voz.cislo_subjektu
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.ino_znackamodel AS znm
             ON voz.znackamodel = znm.cislo_subjektu
+-- Bez omezení stavu vrací pohled celou historii - k srpnu 2026 to bylo
+-- 70 860 zakázek, z toho 69 372 ukončených. Do appky patří jen to, co
+-- stojí na dílně, a tahat zbytek přes linkovaný server nemá smysl.
+--   3  Ukončeno       10  Nerealizuje se       50  Dokončeno
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
-       AND hlv.stav_real <> 10;
+       AND hlv.stav_real NOT IN (3, 10, 50);
 go
 
 -- ---------------------------------------------------------------------
