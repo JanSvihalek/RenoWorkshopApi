@@ -1,0 +1,100 @@
+// Schéma provozní databáze RenoWorkshopu.
+//
+// Záměrně jsou to dvě oddělené skupiny tabulek:
+//
+//   helios_*   zrcadlo Heliosu. Synchronizace je přepisuje, jsou to jen kopie
+//              a kdykoli se dají zahodit a natáhnout znovu.
+//   dilenske_* naše data, která v Heliosu neexistují. Synchronizace na ně
+//              nikdy nesahá, jinak by přišli mechanici o práci.
+//
+// Spojuje je číslo zakázky (`reference_subjektu` z Heliosu).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Zakázka načtená z Heliosu. Přepisuje se každou synchronizací.
+model HeliosZakazka {
+  cisloZakazky    String    @id @map("cislo_zakazky")
+  spz             String?
+  vin             String?
+  model           String?
+  zakaznik        String?
+  utvarKod        String?   @map("utvar_kod")
+  utvarNazev      String?   @map("utvar_nazev")
+  datumPrijeti    DateTime? @map("datum_prijeti")
+  terminDokonceni DateTime? @map("termin_dokonceni")
+  stavRealCislo   Int?      @map("stav_real_cislo")
+  stavRealNazev   String?   @map("stav_real_nazev")
+
+  /// Kdy zakázku naposledy potvrdila synchronizace. Co tu chybí déle,
+  /// z Heliosu zmizelo nebo se uzavřelo.
+  videnoAt DateTime @map("videno_at")
+
+  ukony    HeliosUkon[]
+  dilensky DilenskyStav?
+  poznamky Poznamka[]
+
+  @@index([utvarKod])
+  @@map("helios_zakazky")
+}
+
+/// Úkon (závada) ze servisní zakázky. Text je z Heliosu, „hotovo" je naše.
+model HeliosUkon {
+  id           String  @id
+  cisloZakazky String  @map("cislo_zakazky")
+  nazev        String
+  hotovo       Boolean @default(false)
+  normohodiny  Decimal? @db.Decimal(6, 2)
+
+  zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
+
+  @@index([cisloZakazky])
+  @@map("helios_ukony")
+}
+
+/// Dílenský stav zakázky - to, co v Heliosu není a co posouvají mechanici.
+model DilenskyStav {
+  cisloZakazky String   @id @map("cislo_zakazky")
+  stav         String
+  stani        String?
+  zmenenoKym   String?  @map("zmeneno_kym")
+  zmenenoUid   String?  @map("zmeneno_uid")
+  zmenenoAt    DateTime @updatedAt @map("zmeneno_at")
+
+  zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
+
+  @@map("dilenske_stavy")
+}
+
+/// Poznámka mechanika nebo poradce.
+model Poznamka {
+  id           String   @id @default(uuid())
+  cisloZakazky String   @map("cislo_zakazky")
+  text         String
+  autor        String
+  autorUid     String?  @map("autor_uid")
+  vytvorenoAt  DateTime @default(now()) @map("vytvoreno_at")
+
+  zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
+
+  @@index([cisloZakazky, vytvorenoAt])
+  @@map("poznamky")
+}
+
+/// Záznam o průběhu synchronizace - ať jde poznat, že Helios mlčí,
+/// dřív než se na to někdo zeptá.
+model Synchronizace {
+  id          Int      @id @default(autoincrement())
+  zacatekAt   DateTime @map("zacatek_at")
+  konecAt     DateTime? @map("konec_at")
+  pocetZakazek Int?    @map("pocet_zakazek")
+  chyba       String?
+
+  @@map("synchronizace")
+}

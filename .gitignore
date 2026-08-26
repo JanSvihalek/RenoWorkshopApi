@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+*.log
+
+# Uložiště fotek k zakázkám (až přibude) do gitu nepatří.
+storage/
