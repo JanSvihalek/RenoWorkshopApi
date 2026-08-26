@@ -7,6 +7,11 @@
 -- Zatím jen zakázky. Úkony (závady) se do appky netahají - až se to bude
 -- rozšiřovat, přibude druhý pohled, aby se zakázky nenásobily.
 --
+-- Pozor na čtyřdílné názvy `RAS_HEN.RNC_ostra.lcs.*`: pohled vzniká
+-- v databázi RenoWorkshop na RENDCAPPu, kde schéma `lcs` neexistuje.
+-- Ve variantě přes OPENQUERY na konci souboru se prefix `RAS_HEN`
+-- naopak neuvádí - tam už dotaz běží přímo na Heliosu.
+--
 -- Pozor: SQL Server RENOCARu je starší než 2016 SP1, takže
 -- `create or alter view` neprojde. Proto drop + create.
 -- Zakládat v normálním query okně, ne v grafickém návrháři (neumí CTE).
@@ -27,20 +32,20 @@ SELECT hlv.reference_subjektu AS c_zakazky,
        hlv.datum_zprovozneni  AS predpoklad_datum_dokonceni,
        hlv.stav_real,
        val.display_value      AS stav_HeN
-FROM   lcs.ino_srvszak_hlavicka AS hlv
-       LEFT OUTER JOIN lcs.organizace AS org
+FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
+       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.organizace AS org
             ON hlv.organizace = org.cislo_subjektu
-       LEFT OUTER JOIN lcs.subjekty AS sub
+       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.subjekty AS sub
             ON hlv.zpracovatel = sub.cislo_subjektu
        -- Podmínka na číselník patří do ON, ne do WHERE. Ve WHERE by
        -- z tohohle levého joinu udělala vnitřní a zakázka s neznámým
        -- stavem by z výsledku zmizela.
-       LEFT OUTER JOIN lcs.attribute_valuation_entry AS val
+       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.attribute_valuation_entry AS val
             ON hlv.stav_real = val.db_value_int
            AND val.cislo_subjektu = 64208
-       LEFT OUTER JOIN lcs.ino_vozidlo AS voz
+       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.ino_vozidlo AS voz
             ON hlv.vozidlo = voz.cislo_subjektu
-       LEFT OUTER JOIN lcs.ino_znackamodel AS znm
+       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.ino_znackamodel AS znm
             ON voz.znackamodel = znm.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
        AND hlv.stav_real <> 10;
