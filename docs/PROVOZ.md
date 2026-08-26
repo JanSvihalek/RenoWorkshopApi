@@ -135,9 +135,10 @@ problém v appce, nebo v datech.
    `RenoWorkshop`. Je v něm i varianta přes `OPENQUERY` pro případ, že by
    byl distribuovaný dotaz pomalý.
 5. **Firebase service account** do `secrets/` a cesta v `.env`.
-6. **Node služba** — `.env` vyplnit, pak `npm ci && npm run build && node dist/server.js`.
+6. **Node služba** — `.env` vyplnit, pak `npm ci && npm run build && npm start`.
    Pořadí není libovolné: `build` spouští `prisma generate`, který potřebuje
-   `DATABASE_URL` z `.env`.
+   `DATABASE_URL` z `.env`. Konfigurace se načte ze souboru `.env` ve složce
+   projektu, nebo z proměnných prostředí, když ho správce služby nastaví sám.
    Musí se spouštět po startu serveru; jak, je na tobě (Windows služba přes
    nssm, nebo kontejner — podle toho, jak běží RenoDesk).
 7. **Reverzní proxy v IIS** z veřejné cesty na `http://localhost:8092`.

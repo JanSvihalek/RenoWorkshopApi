@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+// Node proměnné z `.env` sám nenačítá (na rozdíl od Prisma CLI). Když
+// soubor není - třeba když konfiguraci dodává správce služby nebo
+// kontejner - pokračuje se s tím, co je v prostředí.
+try {
+  process.loadEnvFile();
+} catch {
+  // .env neexistuje, což je v pořádku.
+}
+
 /**
  * Konfigurace z proměnných prostředí. Ověřuje se při startu, ať služba
  * spadne hned a srozumitelně, ne až za pět minut při první synchronizaci.
