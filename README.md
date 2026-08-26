@@ -25,10 +25,15 @@ V nejhorším případě se přepíše kopie, kterou příští běh natáhne zn
 
 ```bash
 npm install
-cp .env.example .env       # vyplnit server, databázi a hesla
+cp .env.example .env       # vyplnit heslo k databázi - musí být dřív než build
+npm run build              # součástí je i `prisma generate`
 npx prisma migrate deploy  # založí tabulky ve vlastní databázi
 npm run dev
 ```
+
+`.env` musí existovat **před** buildem: `prisma generate` čte z něj připojení
+a bez něj skončí chybou. Na serverech, kde npm blokuje instalační skripty,
+se klient sám od sebe nevygeneruje - proto je generování součástí `build`.
 
 Databáze je **SQL Server** - vlastní databáze a vlastní login, ideálně na téže
 instanci, která má linkovaný server na Helios. Do produkčních databází ani do
