@@ -6,6 +6,9 @@ a Heliosem. Běží na RENDCAPPu vedle RenoDesku.
 Kontrakt rozhraní je v mobilní aplikaci v `docs/API.md` — ten je zdroj pravdy,
 tahle služba ho plní.
 
+Jak to celé běží, co na čem závisí a co se stane při výpadku:
+[docs/PROVOZ.md](docs/PROVOZ.md).
+
 ## Co dělá
 
 Aplikace **nikdy nemluví s Heliosem přímo**. Služba drží dvě oddělené věci:
