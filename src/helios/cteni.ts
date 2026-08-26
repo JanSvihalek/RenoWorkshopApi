@@ -25,20 +25,8 @@ export type ZakazkaZHeliosu = {
   stav_HeN: string | null;
 };
 
-export type UkonZHeliosu = {
-  c_zakazky: string;
-  ukon_id: number;
-  ukon: string;
-};
-
 export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {
   return prisma.$queryRaw<ZakazkaZHeliosu[]>`
     select * from dbo.v_renoworkshop_zakazky
-  `;
-}
-
-export async function nactiUkony(): Promise<UkonZHeliosu[]> {
-  return prisma.$queryRaw<UkonZHeliosu[]>`
-    select * from dbo.v_renoworkshop_ukony
   `;
 }

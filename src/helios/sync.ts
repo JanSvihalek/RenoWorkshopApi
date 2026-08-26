@@ -1,6 +1,6 @@
 import { prisma } from '../db.js';
 import { jeUkoncena, vychoziStav } from '../domain/stav.js';
-import { nactiUkony, nactiZakazky } from './cteni.js';
+import { nactiZakazky } from './cteni.js';
 
 /**
  * Přenos zakázek z Heliosu do provozní databáze.
@@ -18,7 +18,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
   });
 
   try {
-    const [zakazky, ukony] = await Promise.all([nactiZakazky(), nactiUkony()]);
+    const zakazky = await nactiZakazky();
     const ted = new Date();
 
     const aktivni = zakazky.filter((z) => !jeUkoncena(z.stav_real));
@@ -55,18 +55,6 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           stavRealNazev: z.stav_HeN,
           videnoAt: ted,
         },
-      });
-    }
-
-    const zname = new Set(aktivni.map((z) => z.c_zakazky));
-    for (const u of ukony) {
-      if (!zname.has(u.c_zakazky)) continue;
-      const id = `${u.c_zakazky}:${u.ukon_id}`;
-      await prisma.heliosUkon.upsert({
-        where: { id },
-        create: { id, cisloZakazky: u.c_zakazky, nazev: u.ukon },
-        // `hotovo` schválně nepřepisujeme, to je naše.
-        update: { nazev: u.ukon },
       });
     }
 

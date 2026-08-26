@@ -1,8 +1,11 @@
--- Pohledy nad Heliosem, ze kterých čte synchronizace.
+-- Pohled nad Heliosem, ze kterého čte synchronizace.
 --
--- Zdroj pravdy pro běh jsou pohledy založené na SQL Serveru; tenhle soubor
--- je jejich verzovaná kopie. Když se pohled změní, přepiš i tenhle soubor,
+-- Zdroj pravdy pro běh je pohled založený na SQL Serveru; tenhle soubor
+-- je jeho verzovaná kopie. Když se pohled změní, přepiš i tenhle soubor,
 -- ať je v historii vidět proč.
+--
+-- Zatím jen zakázky. Úkony (závady) se do appky netahají - až se to bude
+-- rozšiřovat, přibude druhý pohled, aby se zakázky nenásobily.
 --
 -- Pozor: SQL Server RENOCARu je starší než 2016 SP1, takže
 -- `create or alter view` neprojde. Proto drop + create.
@@ -41,23 +44,6 @@ FROM   lcs.ino_srvszak_hlavicka AS hlv
             ON voz.znackamodel = znm.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
        AND hlv.stav_real <> 10;
-go
-
--- Úkony (závady) samostatně - v hlavním pohledu by násobily zakázky.
-if object_id('dbo.v_renoworkshop_ukony') is not null
-    drop view dbo.v_renoworkshop_ukony;
-go
-
-create view dbo.v_renoworkshop_ukony as
-SELECT hlv.reference_subjektu AS c_zakazky,
-       zav.cislo_subjektu     AS ukon_id,
-       zav.nazev_subjektu     AS ukon
-FROM   lcs.ino_srvszak_hlavicka AS hlv
-       JOIN lcs.ino_srvszak_zavady AS zav
-            ON hlv.cislo_subjektu = zav.zakazka
-WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
-       AND hlv.stav_real <> 10
-       AND zav.nazev_subjektu IS NOT NULL;
 go
 
 -- ---------------------------------------------------------------------

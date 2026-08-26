@@ -37,16 +37,6 @@ CREATE TABLE [dbo].[helios_zakazky] (
 );
 
 -- CreateTable
-CREATE TABLE [dbo].[helios_ukony] (
-    [id] NVARCHAR(60) NOT NULL,
-    [cislo_zakazky] NVARCHAR(40) NOT NULL,
-    [nazev] NVARCHAR(500) NOT NULL,
-    [hotovo] BIT NOT NULL CONSTRAINT [helios_ukony_hotovo_df] DEFAULT 0,
-    [normohodiny] DECIMAL(6,2),
-    CONSTRAINT [helios_ukony_pkey] PRIMARY KEY CLUSTERED ([id])
-);
-
--- CreateTable
 CREATE TABLE [dbo].[dilenske_stavy] (
     [cislo_zakazky] NVARCHAR(40) NOT NULL,
     [stav] NVARCHAR(40) NOT NULL,
@@ -82,13 +72,7 @@ CREATE TABLE [dbo].[synchronizace] (
 CREATE NONCLUSTERED INDEX [helios_zakazky_utvar_kod_idx] ON [dbo].[helios_zakazky]([utvar_kod]);
 
 -- CreateIndex
-CREATE NONCLUSTERED INDEX [helios_ukony_cislo_zakazky_idx] ON [dbo].[helios_ukony]([cislo_zakazky]);
-
--- CreateIndex
 CREATE NONCLUSTERED INDEX [poznamky_cislo_zakazky_vytvoreno_at_idx] ON [dbo].[poznamky]([cislo_zakazky], [vytvoreno_at]);
-
--- AddForeignKey
-ALTER TABLE [dbo].[helios_ukony] ADD CONSTRAINT [helios_ukony_cislo_zakazky_fkey] FOREIGN KEY ([cislo_zakazky]) REFERENCES [dbo].[helios_zakazky]([cislo_zakazky]) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE [dbo].[dilenske_stavy] ADD CONSTRAINT [dilenske_stavy_cislo_zakazky_fkey] FOREIGN KEY ([cislo_zakazky]) REFERENCES [dbo].[helios_zakazky]([cislo_zakazky]) ON DELETE CASCADE ON UPDATE CASCADE;

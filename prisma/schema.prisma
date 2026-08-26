@@ -7,7 +7,8 @@
 // Záměrně jsou to dvě oddělené skupiny tabulek:
 //
 //   helios_*   zrcadlo Heliosu. Synchronizace je přepisuje, jsou to kopie
-//              a kdykoli se dají zahodit a natáhnout znovu.
+//              a kdykoli se dají zahodit a natáhnout znovu. Zatím jen
+//              zakázky; úkony (závady) se z Heliosu netahají.
 //   dilenske_* naše data, která v Heliosu neexistují. Synchronizace na ně
 //              nikdy nesahá, jinak by přišli mechanici o práci.
 //
@@ -43,26 +44,11 @@ model HeliosZakazka {
   /// z Heliosu zmizelo nebo se uzavřelo.
   videnoAt DateTime @map("videno_at") @db.DateTime2
 
-  ukony    HeliosUkon[]
   dilensky DilenskyStav?
   poznamky Poznamka[]
 
   @@index([utvarKod])
   @@map("helios_zakazky")
-}
-
-/// Úkon (závada) ze servisní zakázky. Text je z Heliosu, „hotovo" je naše.
-model HeliosUkon {
-  id           String   @id @db.NVarChar(60)
-  cisloZakazky String   @map("cislo_zakazky") @db.NVarChar(40)
-  nazev        String   @db.NVarChar(500)
-  hotovo       Boolean  @default(false)
-  normohodiny  Decimal? @db.Decimal(6, 2)
-
-  zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
-
-  @@index([cisloZakazky])
-  @@map("helios_ukony")
 }
 
 /// Dílenský stav zakázky - to, co v Heliosu není a co posouvají mechanici.

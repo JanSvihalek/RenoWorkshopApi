@@ -46,11 +46,11 @@ Služba má vlastní databázi a v ní dvě oddělené skupiny tabulek:
 
 | Tabulky | Kdo je vlastní | Co s nimi dělá synchronizace |
 |---|---|---|
-| `helios_zakazky`, `helios_ukony` | Helios | přepisuje je, jsou to kopie |
+| `helios_zakazky` | Helios | přepisuje je, jsou to kopie |
 | `dilenske_stavy`, `poznamky` | RenoWorkshop | **nesahá na ně** |
 
-Sloupec `helios_ukony.hotovo` je výjimka: řádek úkonu je z Heliosu, ale
-příznak hotovo je náš a synchronizace ho nepřepisuje.
+Úkony (závady) se z Heliosu zatím netahají - aplikace dostane prázdný
+seznam a sekci nezobrazí. Až se to bude rozšiřovat, přibude druhý pohled.
 
 Kdyby se synchronizace pokazila, v nejhorším případě přepíše kopie, které
 příští běh natáhne znovu. Práci mechaniků zničit nemůže.
@@ -61,8 +61,7 @@ příští běh natáhne znovu. Práci mechaniků zničit nemůže.
 Jeden běh vypadá takhle:
 
 1. Zapíše řádek do `synchronizace` (začátek běhu).
-2. Přečte dva pohledy ze SQL Serveru: `v_renoworkshop_zakazky`
-   a `v_renoworkshop_ukony`. Dotaz trvá kolem 1,5 vteřiny.
+2. Přečte pohled `v_renoworkshop_zakazky`. Dotaz trvá kolem 1,5 vteřiny.
 3. Zahodí zakázky ve stavu `3 Ukončeno`, `50 Dokončeno`, `10 Nerealizuje se`.
 4. Zbytek zapíše do `helios_*`. Zakázku, kterou vidí poprvé, založí a nastaví
    jí **výchozí dílenský stav odvozený z Heliosu** (`42 Nenaskladněno` → čeká
@@ -93,9 +92,6 @@ aktualizovanou zakázku. **Do Heliosu nejde nic.**
 **Poznámka** — `POST /api/orders/{id}/notes`. Autor se bere z tokenu, ne
 z těla požadavku.
 
-**Hotový úkon** — `PATCH /api/orders/{id}/work-items/{ukonId}` přepne
-příznak `hotovo`.
-
 Filtrování, hledání a řazení dělá aplikace u sebe nad načteným seznamem,
 takže se při každém ťuknutí nechodí na server.
 
@@ -124,9 +120,9 @@ problém v appce, nebo v datech.
    přihlášení má používat vzdálený účet s právem **jen `SELECT`**, a to jen
    pro login služby - ostatní ať mají „Not be made", aby přes ten most
    nemohl skočit kdokoli.
-4. **Pohledy** — skript `src/helios/dotazy.sql`, spustit v databázi
+4. **Pohled** — skript `src/helios/dotazy.sql`, spustit v databázi
    `RenoWorkshop`. Je v něm i varianta přes `OPENQUERY` pro případ, že by
-   byly distribuované dotazy pomalé.
+   byl distribuovaný dotaz pomalý.
 5. **Firebase service account** do `secrets/` a cesta v `.env`.
 6. **Node služba** — `npm ci && npm run build && node dist/server.js`.
    Musí se spouštět po startu serveru; jak, je na tobě (Windows služba přes

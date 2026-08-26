@@ -15,8 +15,8 @@ Aplikace **nikdy nemluví s Heliosem přímo**. Služba drží dvě oddělené v
 
 | Data | Vlastník | Chování |
 |---|---|---|
-| zakázka, vozidlo, zákazník, útvar, termíny, úkony | Helios (jen čtení) | projekce, obnovuje se každých 5 minut, přepisuje se |
-| dílenský stav, poznámky, hotové úkony, stání | RenoWorkshop | vzniká v aplikaci, synchronizace na to nesahá |
+| zakázka, vozidlo, zákazník, útvar, termíny | Helios (jen čtení) | projekce, obnovuje se každých 5 minut, přepisuje se |
+| dílenský stav, poznámky, stání | RenoWorkshop | vzniká v aplikaci, synchronizace na to nesahá |
 
 Odděleně schválně: chyba v synchronizaci pak nemůže smazat práci mechaniků.
 V nejhorším případě se přepíše kopie, kterou příští běh natáhne znovu.
@@ -103,4 +103,5 @@ Ještě chybí:
 
 - založení databáze a nasazení (reverzní proxy přes IIS)
 - mechanik u zakázky — v Heliosu se zatím nenašel sloupec
+- úkony (závady) - zatím se z Heliosu netahají, aplikace dostane prázdný seznam
 - fotodokumentace (viz kontrakt v aplikaci)

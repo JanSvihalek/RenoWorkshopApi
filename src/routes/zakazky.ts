@@ -10,7 +10,6 @@ import { synchronizujNaVyzadani } from '../helios/sync.js';
 const sVazbami = {
   dilensky: true,
   poznamky: { orderBy: { vytvorenoAt: 'desc' } },
-  ukony: { orderBy: { nazev: 'asc' } },
 } as const;
 
 type ZakazkaSVazbami = Prisma.HeliosZakazkaGetPayload<{
@@ -40,12 +39,9 @@ function doOdpovedi(zakazka: ZakazkaSVazbami) {
       author: p.autor,
       createdAt: p.vytvorenoAt.toISOString().slice(0, 19),
     })),
-    workItems: zakazka.ukony.map((u) => ({
-      id: u.id,
-      title: u.nazev,
-      isDone: u.hotovo,
-      estimatedHours: u.normohodiny ? Number(u.normohodiny) : null,
-    })),
+    // Úkony (závady) se z Heliosu zatím netahají - aplikace tuhle sekci
+    // při prázdném seznamu nezobrazí.
+    workItems: [],
   };
 }
 
@@ -161,40 +157,6 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
     });
     return doOdpovedi(aktualni);
   });
-
-  const ukonSchema = z.object({ isDone: z.boolean() });
-
-  server.patch<{ Params: { id: string; ukonId: string } }>(
-    '/orders/:id/work-items/:ukonId',
-    async (request, reply) => {
-      const telo = ukonSchema.safeParse(request.body);
-      if (!telo.success) {
-        return reply.code(400).send({
-          error: { code: 'bad_request', message: 'Očekává se pole isDone.' },
-        });
-      }
-
-      const ukon = await prisma.heliosUkon.findUnique({
-        where: { id: request.params.ukonId },
-      });
-      if (!ukon || ukon.cisloZakazky !== request.params.id) {
-        return reply.code(404).send({
-          error: { code: 'not_found', message: 'Úkon nebyl nalezen.' },
-        });
-      }
-
-      await prisma.heliosUkon.update({
-        where: { id: ukon.id },
-        data: { hotovo: telo.data.isDone },
-      });
-
-      const aktualni = await prisma.heliosZakazka.findUniqueOrThrow({
-        where: { cisloZakazky: request.params.id },
-        include: sVazbami,
-      });
-      return doOdpovedi(aktualni);
-    },
-  );
 
   /** Ruční dotažení z Heliosu, omezené na jedno volání za minutu. */
   server.post('/sync', async (_request, reply) => {
