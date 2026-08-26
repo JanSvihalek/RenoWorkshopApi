@@ -5,7 +5,9 @@
     "moduleResolution": "bundler",
     "lib": ["ES2023"],
     "outDir": "dist",
-    "rootDir": ".",
+    // Kořen je src, ne celý projekt - jinak by překlad vyrobil dist/src/...
+    // a spouštěcí příkaz `node dist/server.js` by soubor nenašel.
+    "rootDir": "src",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -14,5 +16,6 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

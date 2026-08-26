@@ -1,0 +1,10 @@
+{
+  // Kontrola typů včetně testů. Do dist se testy nepřekládají - jejich
+  // typy hlídá tenhle soubor, běh obstará vitest.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}
