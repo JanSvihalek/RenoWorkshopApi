@@ -1,6 +1,6 @@
 import { prisma } from '../db.js';
 import { jeUkoncena, vychoziStav } from '../domain/stav.js';
-import { nactiUkony, nactiZakazky } from './klient.js';
+import { nactiUkony, nactiZakazky } from './cteni.js';
 
 /**
  * Přenos zakázek z Heliosu do provozní databáze.

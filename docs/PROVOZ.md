@@ -20,8 +20,10 @@ Jan; tenhle dokument říká, co se kde děje a co od čeho závisí.
 Tři věci musí běžet: **Node služba**, **reverzní proxy v IIS** a **pohledy
 na SQL Serveru**. Helios sám o RenoWorkshopu neví a nic se do něj nezapisuje.
 
-Obojí je na SQL Serveru: pohledy nad Heliosem i naše databáze. Jsou to ale
-dvě různé databáze a dva různé loginy - ten k Heliosu má práva jen ke čtení.
+Pohledy nad Heliosem leží **v téže databázi** jako naše tabulky a do DMS
+sahají přes **linkovaný server**. Služba tak vystačí s jedním připojením
+a jedním loginem. Že se do Heliosu jen čte, hlídá mapování linkovaného
+serveru - vzdálený účet má práva pouze `SELECT`.
 
 ## Přihlášení
 
@@ -117,12 +119,13 @@ problém v appce, nebo v datech.
 1. **Databáze** — na SQL Serveru založit databázi (třeba `RenoWorkshop`)
    a login, který má práva **jen v ní**. Připojení patří do `DATABASE_URL`.
 2. **Tabulky** — `npx prisma migrate deploy`.
-3. **Pohledy na SQL Serveru** — skript `src/helios/dotazy.sql`. Pozor,
-   server je starší než 2016 SP1, takže `create or alter view` neprojde;
-   skript to řeší přes drop + create a musí se pouštět v normálním query
-   okně, ne v grafickém návrháři.
-4. **Účet do SQL Serveru** s právem **jen `SELECT`** nad těmi dvěma pohledy.
-   Víc práv služba nepotřebuje a mít je by bylo zbytečné riziko.
+3. **Linkovaný server** `RAS_HEN` na RENDCAPPu, mířící na Helios. Mapování
+   přihlášení má používat vzdálený účet s právem **jen `SELECT`**, a to jen
+   pro login služby - ostatní ať mají „Not be made", aby přes ten most
+   nemohl skočit kdokoli.
+4. **Pohledy** — skript `src/helios/dotazy.sql`, spustit v databázi
+   `RenoWorkshop`. Je v něm i varianta přes `OPENQUERY` pro případ, že by
+   byly distribuované dotazy pomalé.
 5. **Firebase service account** do `secrets/` a cesta v `.env`.
 6. **Node služba** — `npm ci && npm run build && node dist/server.js`.
    Musí se spouštět po startu serveru; jak, je na tobě (Windows služba přes

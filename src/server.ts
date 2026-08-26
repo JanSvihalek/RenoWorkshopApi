@@ -3,7 +3,6 @@ import Fastify from 'fastify';
 import { overPrihlaseni } from './auth.js';
 import { config } from './config.js';
 import { prisma } from './db.js';
-import { zavriHelios } from './helios/klient.js';
 import { synchronizuj } from './helios/sync.js';
 import { zakazkyRoutes } from './routes/zakazky.js';
 
@@ -57,7 +56,6 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     clearInterval(casovac);
     void (async () => {
       await server.close();
-      await zavriHelios();
       await prisma.$disconnect();
       process.exit(0);
     })();
