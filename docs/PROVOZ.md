@@ -141,7 +141,10 @@ problém v appce, nebo v datech.
    projektu, nebo z proměnných prostředí, když ho správce služby nastaví sám.
    Musí se spouštět po startu serveru; jak, je na tobě (Windows služba přes
    nssm, nebo kontejner — podle toho, jak běží RenoDesk).
-7. **Reverzní proxy v IIS** z veřejné cesty na `http://localhost:8092`.
+7. **Certifikát** pro jméno, na kterém API poběží - viz
+   [CERTIFIKAT.md](CERTIFIKAT.md). Bez důvěryhodného certifikátu se
+   mobilní aplikace nepřipojí; nedá se to v ní obejít.
+8. **Reverzní proxy v IIS** z veřejné cesty na `http://localhost:8092`.
    Na RENDCAPPu běží cizí produkční aplikace, takže **žádný `iisreset`** —
    jen restart konkrétního webu.
 

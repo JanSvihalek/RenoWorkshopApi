@@ -9,6 +9,9 @@ tahle služba ho plní.
 Jak to celé běží, co na čem závisí a co se stane při výpadku:
 [docs/PROVOZ.md](docs/PROVOZ.md).
 
+Certifikát se obnovuje **ručně každé tři měsíce** - postup a proč to tak je:
+[docs/CERTIFIKAT.md](docs/CERTIFIKAT.md).
+
 ## Co dělá
 
 Aplikace **nikdy nemluví s Heliosem přímo**. Služba drží dvě oddělené věci:
