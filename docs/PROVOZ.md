@@ -148,6 +148,28 @@ problém v appce, nebo v datech.
    Na RENDCAPPu běží cizí produkční aplikace, takže **žádný `iisreset`** —
    jen restart konkrétního webu.
 
+## Ověření bez mobilu
+
+Než je hotový certifikát a než se dá appka nainstalovat do telefonu, jde celý
+řetěz ověřit přímo na serveru. API vyžaduje Firebase token, takže se jeden
+vyrobí nástrojem v `tools/`:
+
+```powershell
+cd C:\RenoWorkshopApi
+$t = node tools/testovaci-token.mjs
+Invoke-RestMethod http://localhost:8092/api/orders -Headers @{ Authorization = "Bearer $t" } |
+  Select-Object -First 3 id, licensePlate, model, status |
+  Format-Table -AutoSize
+```
+
+Když se vypíšou skutečné zakázky, funguje celá cesta: Helios → linkovaný
+server → naše databáze → API → ověření tokenu. Zbývá pak už jen certifikát
+a doprava do telefonu.
+
+Token platí hodinu a má práva přihlášeného zaměstnance - po ověření zavři
+okno, zůstává v historii PowerShellu. Ve Firebase Authentication po něm
+zůstane uživatel `diagnostika-api`, který se dá smazat.
+
 ## Než se aplikace přepne na ostrá data
 
 Aplikace zatím běží na ukázkových datech. Přepne se proměnnou při buildu:
