@@ -52,12 +52,14 @@ Služba má vlastní databázi a v ní dvě oddělené skupiny tabulek:
 Úkony (závady) se z Heliosu zatím netahají - aplikace dostane prázdný
 seznam a sekci nezobrazí. Až se to bude rozšiřovat, přibude druhý pohled.
 
-**Typ zakázky** (běžná, interní, klempířská) se veze ve sloupcích
-`typ_kod` a `typ_nazev`. Pohled je zatím nemá vyplněné - v
-`src/helios/dotazy.sql` je připravené místo, kam patří sloupec z hlavičky
-zakázky a jeho číselník. Dokud se pohled neupraví, zůstávají prázdné:
-synchronizace čte `select *`, takže chybějící sloupce nevadí a nezáleží
-na tom, jestli se dřív nasadí služba, nebo upraví pohled.
+**Typ zakázky** (běžná, interní, klempířská) je v Heliosu *řada zakázky*
+a pohled ji vrací jako `zakazka_rada`. Do našich tabulek jde do `typ_kod`
+a `typ_nazev`, do API jako `orderType`. Název zatím slouží i jako klíč;
+až pohled doplní `zakazka_rada_kod` (`hlv.zakazka_hlavni`), použije se
+sám a přejmenování řady v Heliosu pak nerozbije filtr zapnutý v telefonu.
+
+Sloupec je nepovinný - synchronizace čte `select *`, takže když chybí,
+běží dál a appka typ nikde neukáže.
 
 Kdyby se synchronizace pokazila, v nejhorším případě přepíše kopie, které
 příští běh natáhne znovu. Práci mechaniků zničit nemůže.
@@ -70,6 +72,10 @@ Jeden běh vypadá takhle:
 1. Zapíše řádek do `synchronizace` (začátek běhu).
 2. Přečte pohled `v_renoworkshop_zakazky`. Dotaz trvá kolem 1,5 vteřiny.
 3. Zahodí zakázky ve stavu `3 Ukončeno`, `50 Dokončeno`, `10 Nerealizuje se`.
+   Filtruje se tady i v pohledu. Když pohled ukončené pustí (dnes ano,
+   podmínka je jen `stav_real <> 10`), přenese se přes linkovaný server
+   kolem 70 000 řádků při každém běhu místo zhruba 1 500 - v databázi se
+   nic nezkazí, ale je to zbytečná zátěž. Viz poznámku v `dotazy.sql`.
 4. Zbytek zapíše do `helios_*`. Zakázku, kterou vidí poprvé, založí a nastaví
    jí **výchozí dílenský stav odvozený z Heliosu** (`42 Nenaskladněno` → čeká
    na díly, `30 Zpracováváno` → v opravě, `36 K fakturaci` → připraveno).

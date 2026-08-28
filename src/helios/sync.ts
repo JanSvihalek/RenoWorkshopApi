@@ -12,16 +12,24 @@ import { nactiZakazky, type ZakazkaZHeliosu } from './cteni.js';
  * v Heliosu, aby seznam nezačínal se vším na „Přijato". Od té chvíle
  * rozhoduje mechanik a Helios do stavu nemluví.
  */
+/** Název řady zakázky, prázdný řetězec bereme jako nevyplněno. */
+function typNazev(z: ZakazkaZHeliosu): string | null {
+  const nazev = z.zakazka_rada?.trim();
+  return nazev ? nazev : null;
+}
+
 /**
- * Kód typu zakázky z Heliosu. Číselníky tam bývají číselné, sloupec ale
- * může být i textový - do naší tabulky jde vždycky text, aby se s ním
- * dalo zacházet stejně jako s kódem útvaru.
+ * Klíč řady zakázky. Pohled zatím vrací jen název, takže slouží i jako
+ * kód - appka podle něj filtruje. Jakmile pohled doplní `zakazka_rada_kod`,
+ * použije se ten: název se v Heliosu dá přepsat, kód ne.
  */
 function typKod(z: ZakazkaZHeliosu): string | null {
-  const kod = z.typ_kod;
-  if (kod === null || kod === undefined) return null;
-  const text = String(kod).trim();
-  return text === '' ? null : text;
+  const kod = z.zakazka_rada_kod;
+  if (kod !== null && kod !== undefined) {
+    const text = String(kod).trim();
+    if (text !== '') return text;
+  }
+  return typNazev(z);
 }
 
 export async function synchronizuj(): Promise<{ pocet: number }> {
@@ -50,7 +58,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
           typKod: typKod(z),
-          typNazev: z.typ_nazev ?? null,
+          typNazev: typNazev(z),
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,
@@ -70,7 +78,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
           typKod: typKod(z),
-          typNazev: z.typ_nazev ?? null,
+          typNazev: typNazev(z),
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,

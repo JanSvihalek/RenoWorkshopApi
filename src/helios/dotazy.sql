@@ -32,13 +32,14 @@ SELECT hlv.reference_subjektu AS c_zakazky,
        hlv.datum_zprovozneni  AS predpoklad_datum_dokonceni,
        hlv.stav_real,
        val.display_value      AS stav_HeN,
-       -- Typ zakázky (běžná, interní, klempířská). DOPLNIT podle Heliosu:
-       -- sloupec s typem na hlavičce a jeho číselník. Vzor je stav_real
-       -- výš - kód a k němu display_value z attribute_valuation_entry.
-       -- Dokud tu sloupce nejsou, appka typ prostě nezobrazí a nic se
-       -- nerozbije; služba čte pohled přes `select *`.
-       hlv.typ_zakazky        AS typ_kod,
-       typ.display_value      AS typ_nazev
+       -- Řada zakázky: běžná, interní, klempířská. V appce se ukazuje
+       -- jako typ zakázky a dá se podle ní filtrovat.
+       --
+       -- Zatím jen název, který slouží zároveň jako klíč. Kdyby se řada
+       -- v Heliosu přejmenovala, spadne filtr zapnutý v telefonu na
+       -- „vše". Vyřeší to přidání kódu - služba ho použije sama:
+       --   hlv.zakazka_hlavni AS zakazka_rada_kod,
+       rada.nazev_subjektu    AS zakazka_rada
 FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.organizace AS org
             ON hlv.organizace = org.cislo_subjektu
@@ -50,21 +51,33 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.attribute_valuation_entry AS val
             ON hlv.stav_real = val.db_value_int
            AND val.cislo_subjektu = 64208
-       -- DOPLNIT číslo číselníku typu zakázky místo 0 (u stavu je 64208).
-       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.attribute_valuation_entry AS typ
-            ON hlv.typ_zakazky = typ.db_value_int
-           AND typ.cislo_subjektu = 0
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.ino_vozidlo AS voz
             ON hlv.vozidlo = voz.cislo_subjektu
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.ino_znackamodel AS znm
             ON voz.znackamodel = znm.cislo_subjektu
--- Bez omezení stavu vrací pohled celou historii - k srpnu 2026 to bylo
--- 70 860 zakázek, z toho 69 372 ukončených. Do appky patří jen to, co
--- stojí na dílně, a tahat zbytek přes linkovaný server nemá smysl.
---   3  Ukončeno       10  Nerealizuje se       50  Dokončeno
+       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.ino_srvszak_zakazka AS rada
+            ON hlv.zakazka_hlavni = rada.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
-       AND hlv.stav_real NOT IN (3, 10, 50);
+       AND hlv.stav_real <> 10;
 go
+
+-- ---------------------------------------------------------------------
+-- Pozor na rozsah: pohled vrací i ukončené zakázky
+-- ---------------------------------------------------------------------
+--
+-- Podmínka je jen `stav_real <> 10` (Nerealizuje se), takže ve výsledku
+-- jsou i stavy 3 Ukončeno a 50 Dokončeno. K srpnu 2026 to znamená kolem
+-- 70 000 řádků místo zhruba 1 500.
+--
+-- Synchronizace si ukončené odfiltruje sama, takže se v databázi nic
+-- nezkazí - ale těch 70 000 řádků poteče přes linkovaný server při
+-- **každém běhu**, tedy každých pět minut. Je to zbytečná zátěž Heliosu
+-- i sítě.
+--
+-- Buď se vrátí filtr:
+--   AND hlv.stav_real NOT IN (3, 10, 50)
+-- nebo, když je záměr natáhnout do archivu i historii, se to udělá
+-- jednorázově a pravidelná synchronizace zůstane u aktivních zakázek.
 
 -- ---------------------------------------------------------------------
 -- Kdyby byly pohledy přes linkovaný server pomalé

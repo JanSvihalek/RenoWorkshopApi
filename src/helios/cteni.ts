@@ -24,13 +24,21 @@ export type ZakazkaZHeliosu = {
   stav_real: number | null;
   stav_HeN: string | null;
   /**
-   * Typ zakázky (běžná, interní, klempířská). Nepovinné schválně:
-   * dotaz je `select *`, takže dokud pohled tyhle sloupce nevrací,
-   * prostě chybí a synchronizace běží dál. Odpadá tím starost, jestli
-   * se dřív nasadí služba, nebo upraví pohled.
+   * Řada zakázky z Heliosu - běžná, interní, klempířská. V pohledu je
+   * `rada.nazev_subjektu`, tedy jen název bez kódu.
+   *
+   * Nepovinné schválně: dotaz je `select *`, takže dokud pohled sloupec
+   * nevrací, prostě chybí a synchronizace běží dál. Odpadá tím starost,
+   * jestli se dřív nasadí služba, nebo upraví pohled.
    */
-  typ_kod?: string | number | null;
-  typ_nazev?: string | null;
+  zakazka_rada?: string | null;
+
+  /**
+   * Nepovinný kód řady. Když ho pohled doplní (`hlv.zakazka_hlavni`),
+   * použije se jako klíč místo názvu - přejmenování řady v Heliosu pak
+   * nerozbije filtr, který má někdo v appce zapnutý.
+   */
+  zakazka_rada_kod?: string | number | null;
 };
 
 export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {
