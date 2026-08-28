@@ -52,6 +52,13 @@ Služba má vlastní databázi a v ní dvě oddělené skupiny tabulek:
 Úkony (závady) se z Heliosu zatím netahají - aplikace dostane prázdný
 seznam a sekci nezobrazí. Až se to bude rozšiřovat, přibude druhý pohled.
 
+**Typ zakázky** (běžná, interní, klempířská) se veze ve sloupcích
+`typ_kod` a `typ_nazev`. Pohled je zatím nemá vyplněné - v
+`src/helios/dotazy.sql` je připravené místo, kam patří sloupec z hlavičky
+zakázky a jeho číselník. Dokud se pohled neupraví, zůstávají prázdné:
+synchronizace čte `select *`, takže chybějící sloupce nevadí a nezáleží
+na tom, jestli se dřív nasadí služba, nebo upraví pohled.
+
 Kdyby se synchronizace pokazila, v nejhorším případě přepíše kopie, které
 příští běh natáhne znovu. Práci mechaniků zničit nemůže.
 

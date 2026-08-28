@@ -31,7 +31,14 @@ SELECT hlv.reference_subjektu AS c_zakazky,
        hlv.datum_prijeti,
        hlv.datum_zprovozneni  AS predpoklad_datum_dokonceni,
        hlv.stav_real,
-       val.display_value      AS stav_HeN
+       val.display_value      AS stav_HeN,
+       -- Typ zakázky (běžná, interní, klempířská). DOPLNIT podle Heliosu:
+       -- sloupec s typem na hlavičce a jeho číselník. Vzor je stav_real
+       -- výš - kód a k němu display_value z attribute_valuation_entry.
+       -- Dokud tu sloupce nejsou, appka typ prostě nezobrazí a nic se
+       -- nerozbije; služba čte pohled přes `select *`.
+       hlv.typ_zakazky        AS typ_kod,
+       typ.display_value      AS typ_nazev
 FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.organizace AS org
             ON hlv.organizace = org.cislo_subjektu
@@ -43,6 +50,10 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.attribute_valuation_entry AS val
             ON hlv.stav_real = val.db_value_int
            AND val.cislo_subjektu = 64208
+       -- DOPLNIT číslo číselníku typu zakázky místo 0 (u stavu je 64208).
+       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.attribute_valuation_entry AS typ
+            ON hlv.typ_zakazky = typ.db_value_int
+           AND typ.cislo_subjektu = 0
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.ino_vozidlo AS voz
             ON hlv.vozidlo = voz.cislo_subjektu
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.ino_znackamodel AS znm

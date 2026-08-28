@@ -1,6 +1,6 @@
 import { prisma } from '../db.js';
 import { jeUkoncena, vychoziStav } from '../domain/stav.js';
-import { nactiZakazky } from './cteni.js';
+import { nactiZakazky, type ZakazkaZHeliosu } from './cteni.js';
 
 /**
  * Přenos zakázek z Heliosu do provozní databáze.
@@ -12,6 +12,18 @@ import { nactiZakazky } from './cteni.js';
  * v Heliosu, aby seznam nezačínal se vším na „Přijato". Od té chvíle
  * rozhoduje mechanik a Helios do stavu nemluví.
  */
+/**
+ * Kód typu zakázky z Heliosu. Číselníky tam bývají číselné, sloupec ale
+ * může být i textový - do naší tabulky jde vždycky text, aby se s ním
+ * dalo zacházet stejně jako s kódem útvaru.
+ */
+function typKod(z: ZakazkaZHeliosu): string | null {
+  const kod = z.typ_kod;
+  if (kod === null || kod === undefined) return null;
+  const text = String(kod).trim();
+  return text === '' ? null : text;
+}
+
 export async function synchronizuj(): Promise<{ pocet: number }> {
   const beh = await prisma.synchronizace.create({
     data: { zacatekAt: new Date() },
@@ -37,6 +49,8 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           zakaznik: z.organizace,
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
+          typKod: typKod(z),
+          typNazev: z.typ_nazev ?? null,
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,
@@ -55,6 +69,8 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           zakaznik: z.organizace,
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
+          typKod: typKod(z),
+          typNazev: z.typ_nazev ?? null,
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,

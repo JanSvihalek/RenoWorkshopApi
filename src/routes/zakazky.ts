@@ -17,6 +17,17 @@ type ZakazkaSVazbami = Prisma.HeliosZakazkaGetPayload<{
   include: typeof sVazbami;
 }>;
 
+/**
+ * Typ zakázky pro API. Stejný tvar jako útvar - `{code, label}`, nebo
+ * `null`, když ho Helios nemá. Bez názvu se pošle aspoň kód, ať appka
+ * nemá prázdný štítek.
+ */
+function typProApi(kod: string | null, nazev: string | null) {
+  if (!kod) return null;
+  const popis = nazev?.trim();
+  return { code: kod, label: popis && popis.length > 0 ? popis : kod };
+}
+
 /** Tvar odpovědi je daný kontraktem v docs/API.md mobilní aplikace. */
 function doOdpovedi(zakazka: ZakazkaSVazbami) {
   return {
@@ -27,6 +38,7 @@ function doOdpovedi(zakazka: ZakazkaSVazbami) {
     status: zakazka.dilensky?.stav ?? 'received',
     branch: pobockaZUtvaru(zakazka.utvarKod),
     department: utvarProApi(zakazka.utvarKod, zakazka.utvarNazev),
+    orderType: typProApi(zakazka.typKod, zakazka.typNazev),
     receivedAt: zakazka.datumPrijeti?.toISOString().slice(0, 19) ?? null,
     dueAt: zakazka.terminDokonceni?.toISOString().slice(0, 19) ?? null,
     vin: zakazka.vin ?? '',

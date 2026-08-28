@@ -23,6 +23,14 @@ export type ZakazkaZHeliosu = {
   predpoklad_datum_dokonceni: Date | null;
   stav_real: number | null;
   stav_HeN: string | null;
+  /**
+   * Typ zakázky (běžná, interní, klempířská). Nepovinné schválně:
+   * dotaz je `select *`, takže dokud pohled tyhle sloupce nevrací,
+   * prostě chybí a synchronizace běží dál. Odpadá tím starost, jestli
+   * se dřív nasadí služba, nebo upraví pohled.
+   */
+  typ_kod?: string | number | null;
+  typ_nazev?: string | null;
 };
 
 export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {

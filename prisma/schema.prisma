@@ -36,6 +36,12 @@ model HeliosZakazka {
   zakaznik        String?   @db.NVarChar(200)
   utvarKod        String?   @map("utvar_kod") @db.NVarChar(20)
   utvarNazev      String?   @map("utvar_nazev") @db.NVarChar(200)
+
+  /// Typ zakázky z číselníku Heliosu - běžná, interní, klempířská.
+  /// Kód jako text, i když je v Heliosu číselný: zachází se s ním stejně
+  /// jako s kódem útvaru a appka ho jen předává dál.
+  typKod          String?   @map("typ_kod") @db.NVarChar(20)
+  typNazev        String?   @map("typ_nazev") @db.NVarChar(100)
   datumPrijeti    DateTime? @map("datum_prijeti") @db.DateTime2
   terminDokonceni DateTime? @map("termin_dokonceni") @db.DateTime2
   stavRealCislo   Int?      @map("stav_real_cislo")

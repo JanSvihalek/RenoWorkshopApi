@@ -28,6 +28,8 @@ CREATE TABLE [dbo].[helios_zakazky] (
     [zakaznik] NVARCHAR(200),
     [utvar_kod] NVARCHAR(20),
     [utvar_nazev] NVARCHAR(200),
+    [typ_kod] NVARCHAR(20),
+    [typ_nazev] NVARCHAR(100),
     [datum_prijeti] DATETIME2,
     [termin_dokonceni] DATETIME2,
     [stav_real_cislo] INT,
@@ -104,3 +106,12 @@ THROW
 
 END CATCH
 
+-- ---------------------------------------------------------------------
+-- Typ zakázky (běžná, interní, klempířská) - přidáno později
+-- ---------------------------------------------------------------------
+-- Na databázi, která už běží, stačí sloupce doplnit. Prázdné zůstanou,
+-- dokud pohled nad Heliosem typ nedotahuje; synchronizace to snese.
+--
+-- IF COL_LENGTH('dbo.helios_zakazky', 'typ_kod') IS NULL
+--     ALTER TABLE [dbo].[helios_zakazky]
+--         ADD [typ_kod] NVARCHAR(20), [typ_nazev] NVARCHAR(100);
