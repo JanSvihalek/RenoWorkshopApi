@@ -24,51 +24,98 @@ záznam**.
 
 ## První vydání
 
-Jednou. Pak už jen obnova podle návodu níž.
+Jednou. Pak už jen obnova, která je stejná bez prvních dvou kroků.
+
+Popisky odpovídají **Certify Certificate Manager 7.2** - ověřeno proklikáním.
 
 ### 1. Nástroj na RENDCAPP
 
-**Certify The Web** z <https://certifytheweb.com> - běžný instalátor pro
-Windows, bezplatná edice stačí (limit je pár certifikátů). Je to grafický
-nástroj, takže se nikde nepíšou příkazy.
+**Certify The Web** z <https://certifytheweb.com>. Bezplatná edice stačí;
+titulek okna hlásí *Evaluation Mode - Unlicensed*, což na pár certifikátů
+nevadí, ale ověř si aktuální podmínky, ať tě to nepřekvapí.
 
-### 2. Nový certifikát
+### 2. Účet u Let's Encrypt
 
-1. **New Certificate**.
-2. Vybrat web `RenoWorkshopApi` z IIS. Nástroj si z něj předvyplní doménu -
-   zkontroluj, že je tam `renoworkshop.renocar.cz` a nic navíc.
-3. Záložka **Authorization** → **Challenge Type**: `dns-01`.
-4. **DNS Update Method**: `(Manual DNS Update)`. Tím se nástroj u ověření
-   zastaví a vypíše hodnotu, kterou má kolega vložit.
+`Settings` → sekce s certifikačními autoritami → u **Let's Encrypt**
+zaregistruj účet (e-mail a souhlas s podmínkami).
 
-### 3. Nanečisto
+Bez toho skončí požadavek hláškou
+`Failed to match ACME account for managed certificate`. Ostrá a testovací
+autorita mají **oddělené účty**; registrace z laptopu se na server nepřenáší.
 
-Než zavoláš kolegu, klikni na **Request Certificate** a počkej, až se objeví
-okno s hodnotou TXT záznamu. Tím sis ověřil, že je nastavení správně, a víš,
-jak to okno vypadá. **Zavři ho / zruš** - certifikát se nevydá a nic se
-nepokazí.
+### 3. Nový certifikát
 
-Staging režim kvůli tomu zapínat nemusíš: neúspěšných pokusů povoluje
-Let's Encrypt pět za hodinu, což je na dvě zaváhání dost.
+`New Certificate`, pak po kartách:
 
-### 4. Ostré vydání
+**Identifiers**
+- `Use Certificate Subscription`: vypnuto
+- `Select Site`: web `RenoWorkshopApi`
+- `Add identifiers`: `renoworkshop.renocar.cz` → zelené **+**
+- v seznamu zaškrtnout `INCLUDE` i kolečko `PRIMARY`
 
-1. Zavolej kolegovi, ať je u DNS ve WEDOS.
-2. **Request Certificate**. Objeví se hodnota pro
-   `_acme-challenge.renoworkshop.renocar.cz`.
-3. Kolega ji vloží jako TXT záznam.
-4. Ověř, že je záznam vidět zvenčí - **až pak** potvrď pokračování:
+**Authorization**
+- `Challenge Type`: **dns-01**
+- `DNS Update Method`: **(Update DNS Manually)**
+- `Email to Notify`: tvůj e-mail - přijde upozornění, až to bude čekat
+  na TXT záznam
+- `CNAME Delegation Rule`: prázdné
+
+**Advanced → Certificate Authority**
+- autorita: **Let's Encrypt**
+- `Use Staging Mode (Test Certificates)`: **vypnuto** (zapíná se jen na
+  zkoušku nanečisto)
+- `Disable automatic failover to an alternative Certificate Authority`:
+  **zaškrtnuto** - jinak může nástroj při potížích sáhnout po jiné autoritě
+
+**Advanced → General Options**
+- `Enable Auto Renewal`: **vypnuto**. Automatická obnova nemůže fungovat,
+  když se TXT záznam zakládá ručně - jen by se opakovaně pokoušela a padala.
+- `Notify Primary Contact On Renewal Failure`: zapnuto
+
+**Advanced → Signing & Security**: nechat výchozí.
+
+**Deployment**: web `RenoWorkshopApi`, binding na portu 8444.
+
+Pak `Save`.
+
+### 4. Vydání
+
+Kolega musí být u DNS ve WEDOS, je to na pět minut.
+
+1. `Request Certificate`.
+2. Nástroj vypíše název a hodnotu TXT záznamu.
+3. Kolega je vloží (viz [tabulka níž](#co-předat-kolegovi)).
+4. **Ověř, že je záznam vidět zvenčí:**
 
 ```powershell
 Resolve-DnsName _acme-challenge.renoworkshop.renocar.cz -Type TXT -Server 8.8.8.8
 ```
 
-Musí vrátit přesně tu hodnotu z nástroje. Když ne, počkej minutu a zkus
-znovu; WEDOS to obvykle rozšíří do pár minut.
+   Musí vrátit přesně tu hodnotu z nástroje.
+5. **Až potom** potvrď v nástroji pokračování.
+6. Certifikát se stáhne, uloží do úložiště Windows a naváže na binding.
+7. Kolega TXT záznam smaže.
 
-5. Potvrď pokračování. Nástroj certifikát stáhne, uloží do úložiště Windows
-   a naváže na HTTPS binding webu.
-6. Kolega TXT záznam smaže.
+### Co předat kolegovi
+
+| | |
+|---|---|
+| Typ | TXT |
+| Doména | renocar.cz |
+| Název | `_acme-challenge.renoworkshop` |
+| Hodnota | dlouhý řetězec z nástroje, doslova |
+| TTL | co nejnižší, klidně 300 |
+
+Do políčka pro název se ve WEDOSu píše jen část **před** doménou. Kdyby tam
+dal celé `_acme-challenge.renoworkshop.renocar.cz`, vznikne záznam pro
+`...renocar.cz.renocar.cz` a ověření selže. Po uložení ať zkontroluje, jak
+se záznam v přehledu zóny tváří.
+
+**Pozor na `-test` v názvu.** Kontrola tlačítkem `Test` v nástroji si říká
+o `_acme-challenge-test.renoworkshop.renocar.cz`. To je jeho vlastní
+prověrka, ne výzva od Let's Encrypt - protokol ACME má název pevně daný
+a příponu `-test` nezná. Skutečné ověření vždycky potřebuje
+`_acme-challenge.renoworkshop.renocar.cz`.
 
 ### 5. Ověření
 
@@ -76,18 +123,17 @@ znovu; WEDOS to obvykle rozšíří do pár minut.
 Invoke-RestMethod https://renoworkshop.renocar.cz:8444/health
 ```
 
-Bez `-SkipCertificateCheck`. Když projde, je certifikát důvěryhodný a appka
-se připojí.
+Bez `-SkipCertificateCheck`. Když projde, je certifikát důvěryhodný.
 
-### 6. Zapsat si datum
+### 6. Zapsat datum
 
-Do tabulky výš a do kalendáře dvě připomínky. Za 90 dní certifikát vyprší
-a appka přestane fungovat všem naráz.
+Do tabulky výš a do kalendáře dvě připomínky (60. a 75. den). Za 90 dní
+certifikát vyprší a aplikace přestane fungovat všem naráz.
 
 ### 7. Přepnout aplikaci na ostrá data
 
-Teprve teď má smysl. V `.github/workflows/sestaveni.yml` v repozitáři
-aplikace se doplní adresa API:
+Teprve teď to má smysl. V repozitáři aplikace se do
+`.github/workflows/sestaveni.yml` doplní adresa API:
 
 ```
 --dart-define=API_BASE_URL=https://renoworkshop.renocar.cz:8444/api/
@@ -95,6 +141,18 @@ aplikace se doplní adresa API:
 
 Adresa musí končit lomítkem. Po sestavení ukáže obrazovka Nastavení
 u „Zdroje dat" hodnotu **Servisní systém** místo **Ukázková data**.
+
+## Zkouška nanečisto
+
+Než to poběží doopravdy, dá se celý postup projít bez následků: na kartě
+**Advanced → Certificate Authority** zaškrtnout `Use Staging Mode`.
+Certifikát z testovací autority není důvěryhodný a k ničemu se nepoužije,
+ale postup je stejný a nespotřebovávají se limity ostré autority (5
+neúspěšných ověření za hodinu, 50 certifikátů týdně na doménu).
+
+Nejužitečnější část zkoušky zvládneš i bez kolegy: dojdi až k oknu
+s hodnotou TXT záznamu a skonči. Tím sis ověřil, že je vše nastavené
+správně.
 
 ## Kdo co dělá
 
