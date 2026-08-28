@@ -44,7 +44,9 @@ model HeliosZakazka {
   /// Bez cizího klíče schválně: kdyby v Heliosu vznikla řada, kterou
   /// ještě nikdo do převodní tabulky nedoplnil, cizí klíč by shodil
   /// celou synchronizaci.
-  radaReference   String?   @map("rada_reference") @db.NVarChar(20)
+  /// Šířka 50: `reference_subjektu` v Heliosu není jen trojčíslí, jak se
+  /// zdálo z číselníku - kratší sloupec první synchronizaci shodil (P2000).
+  radaReference   String?   @map("rada_reference") @db.NVarChar(50)
   datumPrijeti    DateTime? @map("datum_prijeti") @db.DateTime2
   terminDokonceni DateTime? @map("termin_dokonceni") @db.DateTime2
   stavRealCislo   Int?      @map("stav_real_cislo")

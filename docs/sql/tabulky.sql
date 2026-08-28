@@ -28,7 +28,7 @@ CREATE TABLE [dbo].[helios_zakazky] (
     [zakaznik] NVARCHAR(200),
     [utvar_kod] NVARCHAR(20),
     [utvar_nazev] NVARCHAR(200),
-    [rada_reference] NVARCHAR(20),
+    [rada_reference] NVARCHAR(50),
     [datum_prijeti] DATETIME2,
     [termin_dokonceni] DATETIME2,
     [stav_real_cislo] INT,
@@ -122,8 +122,16 @@ BEGIN
     IF COL_LENGTH('dbo.helios_zakazky', 'typ_kod') IS NOT NULL
         EXEC sp_rename 'dbo.helios_zakazky.typ_kod', 'rada_reference', 'COLUMN';
     ELSE
-        ALTER TABLE [dbo].[helios_zakazky] ADD [rada_reference] NVARCHAR(20);
+        ALTER TABLE [dbo].[helios_zakazky] ADD [rada_reference] NVARCHAR(50);
 END
+GO
+
+-- Hodnota z Heliosu se do 20 znaků nevešla (P2000 při synchronizaci),
+-- proto se sloupec ještě rozšiřuje. Na už založené databázi to doběhne
+-- takhle; na čisté se rovnou zakládá širší.
+IF COL_LENGTH('dbo.helios_zakazky', 'rada_reference') < 100
+    ALTER TABLE [dbo].[helios_zakazky]
+        ALTER COLUMN [rada_reference] NVARCHAR(50);
 GO
 
 -- Sloupec typ_nazev se už nepoužívá - název se bere z převodní tabulky,
