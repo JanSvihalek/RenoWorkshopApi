@@ -211,10 +211,32 @@ Adresa musí končit lomítkem. Po přepnutí ukazuje obrazovka Nastavení
 u řádku „Zdroj dat" hodnotu **Servisní systém** místo **Ukázková data** —
 podle toho se pozná, co má tester v telefonu.
 
-## Otevřená otázka: odkud budou telefony na server dosáhnout
+## Odkud telefony na server dosáhnou
 
-Tohle je potřeba rozhodnout dřív, než se appka přepne. Když bude API jen ve
-vnitřní síti, funguje na firemní wi-fi a nikde jinde — což pro dílnu možná
-stačí, ale znamená to, že mimo budovu aplikace neukáže nic. Varianty jsou
-vnitřní síť, VPN na firemních telefonech, nebo publikování ven přes IIS
-s omezením. Každá má jiné nároky na certifikát a na bezpečnost.
+**Rozhodnuto (srpen 2026): jen z firemní sítě.** Aplikace funguje na firemní
+wi-fi a nikde jinde. Devět z deseti případů je mechanik u auta v hale, takže
+to pokrývá skutečný provoz a nestojí to nic - žádná díra ve firewallu,
+žádná správa VPN na telefonech.
+
+Certifikát na tomhle nic nemění. Ověřuje se přes DNS, takže se Let's Encrypt
+na RENDCAPP nikdy nepřipojuje; certifikát potvrzuje jméno serveru, ne jeho
+dostupnost zvenčí.
+
+Kdyby se ukázalo, že lidé zakázky potřebují i mimo dílnu, jsou tři cesty:
+
+| Cesta | Co obnáší |
+|---|---|
+| VPN na firemních telefonech | API zůstane vevnitř; nastavení na každém telefonu |
+| proxy v DMZ | ven jde oddělený stroj, ten sahá dovnitř; další server ke správě |
+| publikovat RENDCAPP ven | nejrychlejší, ale vystaví produkční server s cizími aplikacemi |
+
+Tu třetí nedoporučuju: na RENDCAPPu běží cizí produkční aplikace a případný
+průšvih by nebyl jen náš.
+
+Dvě věci, které by se u kterékoli z nich musely dořešit:
+
+- **DNS** - `A` záznam je zatím jen na vnitřním DNS. Pro provoz zvenčí by
+  musel být i veřejně ve WEDOSu.
+- **Port** - zevnitř stačí 8444, zvenčí bych šel na 443. Cizí a hotelové
+  sítě nestandardní porty blokují a projeví se to jako „appka občas
+  nefunguje", což se špatně hledá.
