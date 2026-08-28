@@ -36,7 +36,14 @@ SELECT hlv.reference_subjektu AS c_zakazky,
        -- Schválně číslo, ne název: název se dá v Heliosu přepsat a filtr
        -- zapnutý v telefonu by pak přestal sedět. Názvy k číslům drží
        -- tabulka dbo.typy_zakazek v databázi RenoWorkshop.
-       rada.reference_subjektu AS zakazka_rada
+       --
+       -- Číselník obsahuje i řady, které se servisu netýkají, a některé
+       -- mají dlouhou referenci - na těch první synchronizace spadla.
+       -- Zajímají nás jen řady 8xx; ostatní zakázky se **nezahazují**,
+       -- jen zůstanou bez typu.
+       CASE WHEN rada.reference_subjektu LIKE '8%'
+            THEN LTRIM(RTRIM(rada.reference_subjektu))
+       END                     AS zakazka_rada
 FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.organizace AS org
             ON hlv.organizace = org.cislo_subjektu

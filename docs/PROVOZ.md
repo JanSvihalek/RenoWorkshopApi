@@ -67,6 +67,11 @@ v Heliosu přepsat - a filtr zapnutý v telefonu by pak přestal sedět.
 Úprava názvu se navíc projeví **hned**, bez nasazování a bez nové verze
 aplikace; API si tabulku přečte při každém požadavku.
 
+Pohled pouští jen řady **8xx** - číselník v Heliosu obsahuje i řady, které
+se servisu netýkají, a některé mají tak dlouhou referenci, že se do sloupce
+nevejdou (na tom první synchronizace spadla). Zakázka s jinou řadou se
+nezahazuje, jen zůstane bez typu.
+
 Řada, která v tabulce chybí, se v appce ukáže jako holé číslo - je pak
 vidět, že přibyla. Zakázka kvůli tomu nikdy nezmizí a synchronizace
 nespadne (proto tam není cizí klíč). Dohledání chybějících je na konci

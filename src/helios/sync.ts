@@ -21,8 +21,17 @@ function radaReference(z: ZakazkaZHeliosu): string | null {
   const kod = z.zakazka_rada;
   if (kod === null || kod === undefined) return null;
   const text = String(kod).trim();
-  return text === "" ? null : text;
+  if (text === "") return null;
+
+  // Pojistka: nečekaně dlouhá hodnota se do sloupce nevejde a shodila by
+  // **celou** synchronizaci (P2000), ne jen jednu zakázku. Radši ji
+  // zahodíme - zakázka pak nemá typ, což je pořád lepší než zaseknutá
+  // dílna. Pohled sice pouští jen řady 8xx, ale filtr v něm se dá změnit.
+  return text.length <= DELKA_RADY ? text : null;
 }
+
+/** Musí odpovídat NVarChar(50) u `rada_reference` v prisma/schema.prisma. */
+const DELKA_RADY = 50;
 
 export async function synchronizuj(): Promise<{ pocet: number }> {
   const beh = await prisma.synchronizace.create({
