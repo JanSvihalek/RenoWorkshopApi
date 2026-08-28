@@ -8,6 +8,94 @@ Certifikát je od **Let's Encrypt**, platí **90 dní** a obnovuje se **ručně*
 protože ověření vlastnictví domény vyžaduje zápis do DNS ve WEDOS a k tomu
 nemá služba přístup.
 
+## Proč DNS ověření a ne to obvyklé
+
+Let's Encrypt umí ověřit vlastnictví domény dvěma způsoby:
+
+- **HTTP-01** — Let's Encrypt se připojí na `http://renoworkshop.renocar.cz`
+  z internetu. To by znamenalo vystavit RENDCAPP ven, což nechceme.
+- **DNS-01** — do DNS se vloží ověřovací TXT záznam. Let's Encrypt si ho
+  přečte a na server **se vůbec nepřipojuje**.
+
+Používáme DNS-01. Server proto nemusí být z internetu dostupný a `A` záznam
+pro `renoworkshop.renocar.cz` může klidně být jen na vnitřním DNS - stačí,
+aby ho uměly přeložit firemní telefony. Ve WEDOS je potřeba **jen ten TXT
+záznam**.
+
+## První vydání
+
+Jednou. Pak už jen obnova podle návodu níž.
+
+### 1. Nástroj na RENDCAPP
+
+**Certify The Web** z <https://certifytheweb.com> - běžný instalátor pro
+Windows, bezplatná edice stačí (limit je pár certifikátů). Je to grafický
+nástroj, takže se nikde nepíšou příkazy.
+
+### 2. Nový certifikát
+
+1. **New Certificate**.
+2. Vybrat web `RenoWorkshopApi` z IIS. Nástroj si z něj předvyplní doménu -
+   zkontroluj, že je tam `renoworkshop.renocar.cz` a nic navíc.
+3. Záložka **Authorization** → **Challenge Type**: `dns-01`.
+4. **DNS Update Method**: `(Manual DNS Update)`. Tím se nástroj u ověření
+   zastaví a vypíše hodnotu, kterou má kolega vložit.
+
+### 3. Nanečisto
+
+Než zavoláš kolegu, klikni na **Request Certificate** a počkej, až se objeví
+okno s hodnotou TXT záznamu. Tím sis ověřil, že je nastavení správně, a víš,
+jak to okno vypadá. **Zavři ho / zruš** - certifikát se nevydá a nic se
+nepokazí.
+
+Staging režim kvůli tomu zapínat nemusíš: neúspěšných pokusů povoluje
+Let's Encrypt pět za hodinu, což je na dvě zaváhání dost.
+
+### 4. Ostré vydání
+
+1. Zavolej kolegovi, ať je u DNS ve WEDOS.
+2. **Request Certificate**. Objeví se hodnota pro
+   `_acme-challenge.renoworkshop.renocar.cz`.
+3. Kolega ji vloží jako TXT záznam.
+4. Ověř, že je záznam vidět zvenčí - **až pak** potvrď pokračování:
+
+```powershell
+Resolve-DnsName _acme-challenge.renoworkshop.renocar.cz -Type TXT -Server 8.8.8.8
+```
+
+Musí vrátit přesně tu hodnotu z nástroje. Když ne, počkej minutu a zkus
+znovu; WEDOS to obvykle rozšíří do pár minut.
+
+5. Potvrď pokračování. Nástroj certifikát stáhne, uloží do úložiště Windows
+   a naváže na HTTPS binding webu.
+6. Kolega TXT záznam smaže.
+
+### 5. Ověření
+
+```powershell
+Invoke-RestMethod https://renoworkshop.renocar.cz:8444/health
+```
+
+Bez `-SkipCertificateCheck`. Když projde, je certifikát důvěryhodný a appka
+se připojí.
+
+### 6. Zapsat si datum
+
+Do tabulky výš a do kalendáře dvě připomínky. Za 90 dní certifikát vyprší
+a appka přestane fungovat všem naráz.
+
+### 7. Přepnout aplikaci na ostrá data
+
+Teprve teď má smysl. V `.github/workflows/sestaveni.yml` v repozitáři
+aplikace se doplní adresa API:
+
+```
+--dart-define=API_BASE_URL=https://renoworkshop.renocar.cz:8444/api/
+```
+
+Adresa musí končit lomítkem. Po sestavení ukáže obrazovka Nastavení
+u „Zdroje dat" hodnotu **Servisní systém** místo **Ukázková data**.
+
 ## Kdo co dělá
 
 | Krok | Kdo |
