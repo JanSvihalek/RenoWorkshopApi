@@ -53,13 +53,14 @@ Služba má vlastní databázi a v ní dvě oddělené skupiny tabulek:
 seznam a sekci nezobrazí. Až se to bude rozšiřovat, přibude druhý pohled.
 
 **Typ zakázky** je v Heliosu *řada zakázky*. Pohled vrací jen její číslo
-(`801`, `802`, ...) do sloupce `typ_kod`; názvy k nim drží **naše** tabulka
-`typy_zakazek`:
+(`801`, `802`, ...) do sloupce `rada_reference`; názvy k nim drží **naše**
+tabulka `typy_zakazek` (`rada_reference` → `rada_zakazek`):
 
 | Kde | Co je tam | Kdo to mění |
 |---|---|---|
 | Helios | číslo řady | servisní poradce při založení zakázky |
 | `typy_zakazek` | název pro appku (`Běžná`, `PDI`) | ty, `UPDATE` v SSMS |
+| `helios_zakazky.rada_reference` | číslo u konkrétní zakázky | synchronizace |
 
 Rozdělené je to proto, že číslo je stabilní klíč, kdežto název se dá
 v Heliosu přepsat - a filtr zapnutý v telefonu by pak přestal sedět.

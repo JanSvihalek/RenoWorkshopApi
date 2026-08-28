@@ -32,7 +32,7 @@ function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
     status: zakazka.dilensky?.stav ?? "received",
     branch: pobockaZUtvaru(zakazka.utvarKod),
     department: utvarProApi(zakazka.utvarKod, zakazka.utvarNazev),
-    orderType: typProApi(zakazka.typKod, typy),
+    orderType: typProApi(zakazka.radaReference, typy),
     receivedAt: zakazka.datumPrijeti?.toISOString().slice(0, 19) ?? null,
     dueAt: zakazka.terminDokonceni?.toISOString().slice(0, 19) ?? null,
     vin: zakazka.vin ?? "",

@@ -24,12 +24,15 @@ export type TypyZakazek = ReadonlyMap<string, string>;
  */
 export async function nactiTypyZakazek(): Promise<TypyZakazek> {
   const radky = await prisma.typZakazky.findMany();
-  return new Map(radky.map((typ) => [typ.kod, typ.nazev]));
+  return new Map(radky.map((rada) => [rada.radaReference, rada.radaZakazek]));
 }
 
 /** Tvar pro API: `{code, label}` jako u útvaru, nebo `null`. */
-export function typProApi(kod: string | null, typy: TypyZakazek) {
-  if (!kod) return null;
-  const nazev = typy.get(kod)?.trim();
-  return { code: kod, label: nazev && nazev.length > 0 ? nazev : kod };
+export function typProApi(radaReference: string | null, typy: TypyZakazek) {
+  if (!radaReference) return null;
+  const nazev = typy.get(radaReference)?.trim();
+  return {
+    code: radaReference,
+    label: nazev && nazev.length > 0 ? nazev : radaReference,
+  };
 }

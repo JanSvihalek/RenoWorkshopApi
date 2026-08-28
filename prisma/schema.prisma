@@ -44,7 +44,7 @@ model HeliosZakazka {
   /// Bez cizího klíče schválně: kdyby v Heliosu vznikla řada, kterou
   /// ještě nikdo do převodní tabulky nedoplnil, cizí klíč by shodil
   /// celou synchronizaci.
-  typKod          String?   @map("typ_kod") @db.NVarChar(20)
+  radaReference   String?   @map("rada_reference") @db.NVarChar(20)
   datumPrijeti    DateTime? @map("datum_prijeti") @db.DateTime2
   terminDokonceni DateTime? @map("termin_dokonceni") @db.DateTime2
   stavRealCislo   Int?      @map("stav_real_cislo")
@@ -118,12 +118,12 @@ model Synchronizace {
 /// pár a mění se výjimečně. Úprava názvu se v telefonech projeví hned,
 /// bez nasazování a bez nové verze aplikace.
 model TypZakazky {
-  /// Číslo řady z Heliosu, např. `801`.
-  kod   String @id @db.NVarChar(20)
+  /// Číslo řady z Heliosu (`rada.reference_subjektu`), např. `801`.
+  radaReference String @id @map("rada_reference") @db.NVarChar(20)
 
   /// Krátký název pro appku, např. `Běžná`. Dlouhý text se na kartu
   /// zakázky nevejde a ořízne se třemi tečkami.
-  nazev String @db.NVarChar(100)
+  radaZakazek   String @map("rada_zakazek") @db.NVarChar(100)
 
   @@map("typy_zakazek")
 }

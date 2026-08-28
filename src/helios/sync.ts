@@ -17,7 +17,7 @@ import { nactiZakazky, type ZakazkaZHeliosu } from "./cteni.js";
  * číselné - zachází se s ním stejně jako s kódem útvaru a slouží jen jako
  * klíč do `typy_zakazek`.
  */
-function typKod(z: ZakazkaZHeliosu): string | null {
+function radaReference(z: ZakazkaZHeliosu): string | null {
   const kod = z.zakazka_rada;
   if (kod === null || kod === undefined) return null;
   const text = String(kod).trim();
@@ -49,7 +49,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           zakaznik: z.organizace,
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
-          typKod: typKod(z),
+          radaReference: radaReference(z),
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,
@@ -68,7 +68,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           zakaznik: z.organizace,
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
-          typKod: typKod(z),
+          radaReference: radaReference(z),
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,

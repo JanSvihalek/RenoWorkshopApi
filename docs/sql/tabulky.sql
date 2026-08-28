@@ -28,7 +28,7 @@ CREATE TABLE [dbo].[helios_zakazky] (
     [zakaznik] NVARCHAR(200),
     [utvar_kod] NVARCHAR(20),
     [utvar_nazev] NVARCHAR(200),
-    [typ_kod] NVARCHAR(20),
+    [rada_reference] NVARCHAR(20),
     [datum_prijeti] DATETIME2,
     [termin_dokonceni] DATETIME2,
     [stav_real_cislo] INT,
@@ -106,7 +106,7 @@ THROW
 END CATCH
 
 -- ---------------------------------------------------------------------
--- Typ (řada) zakázky - přidáno později
+-- Řada zakázky - přidáno později
 -- ---------------------------------------------------------------------
 --
 -- Helios vrací jen číslo řady (`rada.reference_subjektu`). Názvy k němu
@@ -114,18 +114,38 @@ END CATCH
 -- se dá v Heliosu přepsat. Úprava názvu se v telefonech projeví hned,
 -- bez nasazování a bez nové verze aplikace.
 --
--- Skript je spustitelný opakovaně.
+-- Skript je spustitelný opakovaně a poradí si i s dřívějším pojmenováním
+-- (`typ_kod`, `kod`, `nazev`), kdyby už bylo nasazené.
 
-IF COL_LENGTH('dbo.helios_zakazky', 'typ_kod') IS NULL
-    ALTER TABLE [dbo].[helios_zakazky] ADD [typ_kod] NVARCHAR(20);
+IF COL_LENGTH('dbo.helios_zakazky', 'rada_reference') IS NULL
+BEGIN
+    IF COL_LENGTH('dbo.helios_zakazky', 'typ_kod') IS NOT NULL
+        EXEC sp_rename 'dbo.helios_zakazky.typ_kod', 'rada_reference', 'COLUMN';
+    ELSE
+        ALTER TABLE [dbo].[helios_zakazky] ADD [rada_reference] NVARCHAR(20);
+END
 GO
+
+-- Sloupec typ_nazev se už nepoužívá - název se bere z převodní tabulky,
+-- aby ho stačilo přepsat na jednom místě. Zahodit se dá takhle; nechávám
+-- to na tobě, mazání sloupce je nevratné:
+--   IF COL_LENGTH('dbo.helios_zakazky', 'typ_nazev') IS NOT NULL
+--       ALTER TABLE [dbo].[helios_zakazky] DROP COLUMN [typ_nazev];
 
 IF OBJECT_ID('dbo.typy_zakazek') IS NULL
     CREATE TABLE [dbo].[typy_zakazek] (
-        [kod] NVARCHAR(20) NOT NULL,
-        [nazev] NVARCHAR(100) NOT NULL,
-        CONSTRAINT [typy_zakazek_pkey] PRIMARY KEY CLUSTERED ([kod])
+        [rada_reference] NVARCHAR(20) NOT NULL,
+        [rada_zakazek] NVARCHAR(100) NOT NULL,
+        CONSTRAINT [typy_zakazek_pkey] PRIMARY KEY CLUSTERED ([rada_reference])
     );
+GO
+
+-- Přejmenování z dřívější podoby tabulky.
+IF COL_LENGTH('dbo.typy_zakazek', 'kod') IS NOT NULL
+    EXEC sp_rename 'dbo.typy_zakazek.kod', 'rada_reference', 'COLUMN';
+GO
+IF COL_LENGTH('dbo.typy_zakazek', 'nazev') IS NOT NULL
+    EXEC sp_rename 'dbo.typy_zakazek.nazev', 'rada_zakazek', 'COLUMN';
 GO
 
 -- Názvy podle číselníku řad v Heliosu. Krátké schválně - na kartu
@@ -139,16 +159,18 @@ USING (VALUES
     (N'806', N'Montáž'),
     (N'807', N'Prodej příslušenství'),
     (N'808', N'Zaměstnanecká')
-) AS zdroj ([kod], [nazev])
-    ON cil.[kod] = zdroj.[kod]
+) AS zdroj ([rada_reference], [rada_zakazek])
+    ON cil.[rada_reference] = zdroj.[rada_reference]
 -- Bez WHEN MATCHED schválně: ruční úpravu názvu skript nepřepíše.
 WHEN NOT MATCHED THEN
-    INSERT ([kod], [nazev]) VALUES (zdroj.[kod], zdroj.[nazev]);
+    INSERT ([rada_reference], [rada_zakazek])
+    VALUES (zdroj.[rada_reference], zdroj.[rada_zakazek]);
 GO
 
 -- Řada, která v tabulce chybí, se v appce ukáže jako holé číslo - je pak
 -- vidět, že přibyla. Zakázka nikdy nezmizí. Co takhle chybí:
---   SELECT DISTINCT z.typ_kod
+--   SELECT DISTINCT z.rada_reference
 --   FROM dbo.helios_zakazky AS z
---        LEFT JOIN dbo.typy_zakazek AS t ON z.typ_kod = t.kod
---   WHERE z.typ_kod IS NOT NULL AND t.kod IS NULL;
+--        LEFT JOIN dbo.typy_zakazek AS t
+--             ON z.rada_reference = t.rada_reference
+--   WHERE z.rada_reference IS NOT NULL AND t.rada_reference IS NULL;
