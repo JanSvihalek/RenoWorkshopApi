@@ -211,6 +211,51 @@ Adresa musí končit lomítkem. Po přepnutí ukazuje obrazovka Nastavení
 u řádku „Zdroj dat" hodnotu **Servisní systém** místo **Ukázková data** —
 podle toho se pozná, co má tester v telefonu.
 
+## Otevřené: login služby má sysadmin
+
+Login `renoworkshop` má na RENDCAPPu roli **`sysadmin`**. Je to víc, než
+služba potřebuje - stačilo by jí `db_datareader` a `db_datawriter`
+v databázi RenoWorkshop.
+
+Zúžení se **zkoušelo a nepovedlo** (srpen 2026): bez `sysadmin` začne
+synchronizace padat na
+
+```
+Code: 7416  Access to the remote server is denied because no login-mapping exists.
+```
+
+Přitom mapování na linkovaném serveru `RAS_HEN` vypadá správně - je tam
+catch-all pro všechny loginy se vzdáleným účtem `renoworkshop`
+a `uses_self_credential = 0`. Zdá se tedy, že se catch-all na běžné
+(nesysadmin) loginy neuplatňuje tak, jak vypadá.
+
+Nevyzkoušený krok, kterým to nejspíš půjde dorazit - **jmenovité** mapování
+místo catch-all, pod adminem:
+
+```sql
+EXEC sp_addlinkedsrvlogin
+    @rmtsrvname  = N'RAS_HEN',
+    @useself     = N'FALSE',
+    @locallogin  = N'renoworkshop',
+    @rmtuser     = N'renoworkshop',
+    @rmtpassword = N'<heslo účtu na Heliosu>';
+```
+
+Potřeba je k tomu heslo účtu `renoworkshop` na straně Heliosu. Ověřuje se
+tak, že se pod tím loginem pustí
+
+```sql
+SELECT TOP 5 reference_subjektu FROM RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka;
+```
+
+Pozor: pod adminem projde vždycky, takže testovat **jen** pod loginem
+`renoworkshop`. A systémové pohledy (`sys.servers`, `sys.linked_logins`)
+nesysadmin login nevidí - vracejí prázdno místo chyby, což mate.
+
+Dokud tohle platí, **nepublikovat službu ven** (viz níž): případný průlom
+do procesu by dal k dispozici všemocný databázový účet a přes linkovaný
+server cestu k Heliosu. Ve vnitřní síti je to únosné.
+
 ## Odkud telefony na server dosáhnou
 
 **Rozhodnuto (srpen 2026): jen z firemní sítě.** Aplikace funguje na firemní
