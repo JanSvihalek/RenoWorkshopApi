@@ -32,14 +32,11 @@ SELECT hlv.reference_subjektu AS c_zakazky,
        hlv.datum_zprovozneni  AS predpoklad_datum_dokonceni,
        hlv.stav_real,
        val.display_value      AS stav_HeN,
-       -- Řada zakázky: běžná, interní, klempířská. V appce se ukazuje
-       -- jako typ zakázky a dá se podle ní filtrovat.
-       --
-       -- Zatím jen název, který slouží zároveň jako klíč. Kdyby se řada
-       -- v Heliosu přejmenovala, spadne filtr zapnutý v telefonu na
-       -- „vše". Vyřeší to přidání kódu - služba ho použije sama:
-       --   hlv.zakazka_hlavni AS zakazka_rada_kod,
-       rada.nazev_subjektu    AS zakazka_rada
+       -- Číslo řady zakázky (801 běžná, 802 interní, 803 PDI...).
+       -- Schválně číslo, ne název: název se dá v Heliosu přepsat a filtr
+       -- zapnutý v telefonu by pak přestal sedět. Názvy k číslům drží
+       -- tabulka dbo.typy_zakazek v databázi RenoWorkshop.
+       rada.reference_subjektu AS zakazka_rada
 FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.organizace AS org
             ON hlv.organizace = org.cislo_subjektu

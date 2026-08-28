@@ -29,7 +29,6 @@ CREATE TABLE [dbo].[helios_zakazky] (
     [utvar_kod] NVARCHAR(20),
     [utvar_nazev] NVARCHAR(200),
     [typ_kod] NVARCHAR(20),
-    [typ_nazev] NVARCHAR(100),
     [datum_prijeti] DATETIME2,
     [termin_dokonceni] DATETIME2,
     [stav_real_cislo] INT,
@@ -107,11 +106,49 @@ THROW
 END CATCH
 
 -- ---------------------------------------------------------------------
--- Typ zakázky (běžná, interní, klempířská) - přidáno později
+-- Typ (řada) zakázky - přidáno později
 -- ---------------------------------------------------------------------
--- Na databázi, která už běží, stačí sloupce doplnit. Prázdné zůstanou,
--- dokud pohled nad Heliosem typ nedotahuje; synchronizace to snese.
 --
--- IF COL_LENGTH('dbo.helios_zakazky', 'typ_kod') IS NULL
---     ALTER TABLE [dbo].[helios_zakazky]
---         ADD [typ_kod] NVARCHAR(20), [typ_nazev] NVARCHAR(100);
+-- Helios vrací jen číslo řady (`rada.reference_subjektu`). Názvy k němu
+-- drží tahle databáze, ne Helios: číslo je stabilní klíč, kdežto název
+-- se dá v Heliosu přepsat. Úprava názvu se v telefonech projeví hned,
+-- bez nasazování a bez nové verze aplikace.
+--
+-- Skript je spustitelný opakovaně.
+
+IF COL_LENGTH('dbo.helios_zakazky', 'typ_kod') IS NULL
+    ALTER TABLE [dbo].[helios_zakazky] ADD [typ_kod] NVARCHAR(20);
+GO
+
+IF OBJECT_ID('dbo.typy_zakazek') IS NULL
+    CREATE TABLE [dbo].[typy_zakazek] (
+        [kod] NVARCHAR(20) NOT NULL,
+        [nazev] NVARCHAR(100) NOT NULL,
+        CONSTRAINT [typy_zakazek_pkey] PRIMARY KEY CLUSTERED ([kod])
+    );
+GO
+
+-- Názvy podle číselníku řad v Heliosu. Krátké schválně - na kartu
+-- zakázky se dlouhý text nevejde a ořízne se třemi tečkami.
+-- Doplnit další řadu = jeden INSERT, přejmenovat = jeden UPDATE.
+MERGE [dbo].[typy_zakazek] AS cil
+USING (VALUES
+    (N'801', N'Běžná'),
+    (N'802', N'Interní'),
+    (N'803', N'PDI'),
+    (N'806', N'Montáž'),
+    (N'807', N'Prodej příslušenství'),
+    (N'808', N'Zaměstnanecká')
+) AS zdroj ([kod], [nazev])
+    ON cil.[kod] = zdroj.[kod]
+-- Bez WHEN MATCHED schválně: ruční úpravu názvu skript nepřepíše.
+WHEN NOT MATCHED THEN
+    INSERT ([kod], [nazev]) VALUES (zdroj.[kod], zdroj.[nazev]);
+GO
+
+-- Řada, která v tabulce chybí, se v appce ukáže jako holé číslo - je pak
+-- vidět, že přibyla. Zakázka nikdy nezmizí. Co takhle chybí:
+--   SELECT DISTINCT z.typ_kod
+--   FROM dbo.helios_zakazky AS z
+--        LEFT JOIN dbo.typy_zakazek AS t ON z.typ_kod = t.kod
+--   WHERE z.typ_kod IS NOT NULL AND t.kod IS NULL;

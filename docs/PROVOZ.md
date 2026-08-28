@@ -52,14 +52,24 @@ Služba má vlastní databázi a v ní dvě oddělené skupiny tabulek:
 Úkony (závady) se z Heliosu zatím netahají - aplikace dostane prázdný
 seznam a sekci nezobrazí. Až se to bude rozšiřovat, přibude druhý pohled.
 
-**Typ zakázky** (běžná, interní, klempířská) je v Heliosu *řada zakázky*
-a pohled ji vrací jako `zakazka_rada`. Do našich tabulek jde do `typ_kod`
-a `typ_nazev`, do API jako `orderType`. Název zatím slouží i jako klíč;
-až pohled doplní `zakazka_rada_kod` (`hlv.zakazka_hlavni`), použije se
-sám a přejmenování řady v Heliosu pak nerozbije filtr zapnutý v telefonu.
+**Typ zakázky** je v Heliosu *řada zakázky*. Pohled vrací jen její číslo
+(`801`, `802`, ...) do sloupce `typ_kod`; názvy k nim drží **naše** tabulka
+`typy_zakazek`:
 
-Sloupec je nepovinný - synchronizace čte `select *`, takže když chybí,
-běží dál a appka typ nikde neukáže.
+| Kde | Co je tam | Kdo to mění |
+|---|---|---|
+| Helios | číslo řady | servisní poradce při založení zakázky |
+| `typy_zakazek` | název pro appku (`Běžná`, `PDI`) | ty, `UPDATE` v SSMS |
+
+Rozdělené je to proto, že číslo je stabilní klíč, kdežto název se dá
+v Heliosu přepsat - a filtr zapnutý v telefonu by pak přestal sedět.
+Úprava názvu se navíc projeví **hned**, bez nasazování a bez nové verze
+aplikace; API si tabulku přečte při každém požadavku.
+
+Řada, která v tabulce chybí, se v appce ukáže jako holé číslo - je pak
+vidět, že přibyla. Zakázka kvůli tomu nikdy nezmizí a synchronizace
+nespadne (proto tam není cizí klíč). Dohledání chybějících je na konci
+[`docs/sql/tabulky.sql`](sql/tabulky.sql).
 
 Kdyby se synchronizace pokazila, v nejhorším případě přepíše kopie, které
 příští běh natáhne znovu. Práci mechaniků zničit nemůže.

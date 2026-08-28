@@ -37,11 +37,14 @@ model HeliosZakazka {
   utvarKod        String?   @map("utvar_kod") @db.NVarChar(20)
   utvarNazev      String?   @map("utvar_nazev") @db.NVarChar(200)
 
-  /// Typ zakázky z číselníku Heliosu - běžná, interní, klempířská.
-  /// Kód jako text, i když je v Heliosu číselný: zachází se s ním stejně
-  /// jako s kódem útvaru a appka ho jen předává dál.
+  /// Číslo řady zakázky z Heliosu (`801`). Název se k němu dohledává
+  /// v `typy_zakazek`, ne tady - jinak by přejmenování řady vyžadovalo
+  /// přepsat všechny zakázky.
+  ///
+  /// Bez cizího klíče schválně: kdyby v Heliosu vznikla řada, kterou
+  /// ještě nikdo do převodní tabulky nedoplnil, cizí klíč by shodil
+  /// celou synchronizaci.
   typKod          String?   @map("typ_kod") @db.NVarChar(20)
-  typNazev        String?   @map("typ_nazev") @db.NVarChar(100)
   datumPrijeti    DateTime? @map("datum_prijeti") @db.DateTime2
   terminDokonceni DateTime? @map("termin_dokonceni") @db.DateTime2
   stavRealCislo   Int?      @map("stav_real_cislo")
@@ -109,4 +112,18 @@ model Synchronizace {
   chyba        String?   @db.NVarChar(Max)
 
   @@map("synchronizace")
+}
+
+/// Názvy řad zakázek. Plní se ručně podle číselníku v Heliosu - je jich
+/// pár a mění se výjimečně. Úprava názvu se v telefonech projeví hned,
+/// bez nasazování a bez nové verze aplikace.
+model TypZakazky {
+  /// Číslo řady z Heliosu, např. `801`.
+  kod   String @id @db.NVarChar(20)
+
+  /// Krátký název pro appku, např. `Běžná`. Dlouhý text se na kartu
+  /// zakázky nevejde a ořízne se třemi tečkami.
+  nazev String @db.NVarChar(100)
+
+  @@map("typy_zakazek")
 }

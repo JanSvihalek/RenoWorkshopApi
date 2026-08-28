@@ -1,4 +1,4 @@
-import { prisma } from '../db.js';
+import { prisma } from "../db.js";
 
 /**
  * Čtení zakázek z Heliosu.
@@ -24,21 +24,15 @@ export type ZakazkaZHeliosu = {
   stav_real: number | null;
   stav_HeN: string | null;
   /**
-   * Řada zakázky z Heliosu - běžná, interní, klempířská. V pohledu je
-   * `rada.nazev_subjektu`, tedy jen název bez kódu.
+   * Číslo řady zakázky (`801` běžná, `802` interní, `803` PDI...).
+   * V pohledu je to `rada.reference_subjektu`. Název se k němu dohledává
+   * v naší tabulce `typy_zakazek`.
    *
    * Nepovinné schválně: dotaz je `select *`, takže dokud pohled sloupec
    * nevrací, prostě chybí a synchronizace běží dál. Odpadá tím starost,
    * jestli se dřív nasadí služba, nebo upraví pohled.
    */
-  zakazka_rada?: string | null;
-
-  /**
-   * Nepovinný kód řady. Když ho pohled doplní (`hlv.zakazka_hlavni`),
-   * použije se jako klíč místo názvu - přejmenování řady v Heliosu pak
-   * nerozbije filtr, který má někdo v appce zapnutý.
-   */
-  zakazka_rada_kod?: string | number | null;
+  zakazka_rada?: string | number | null;
 };
 
 export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {

@@ -1,6 +1,6 @@
-import { prisma } from '../db.js';
-import { jeUkoncena, vychoziStav } from '../domain/stav.js';
-import { nactiZakazky, type ZakazkaZHeliosu } from './cteni.js';
+import { prisma } from "../db.js";
+import { jeUkoncena, vychoziStav } from "../domain/stav.js";
+import { nactiZakazky, type ZakazkaZHeliosu } from "./cteni.js";
 
 /**
  * Přenos zakázek z Heliosu do provozní databáze.
@@ -12,24 +12,16 @@ import { nactiZakazky, type ZakazkaZHeliosu } from './cteni.js';
  * v Heliosu, aby seznam nezačínal se vším na „Přijato". Od té chvíle
  * rozhoduje mechanik a Helios do stavu nemluví.
  */
-/** Název řady zakázky, prázdný řetězec bereme jako nevyplněno. */
-function typNazev(z: ZakazkaZHeliosu): string | null {
-  const nazev = z.zakazka_rada?.trim();
-  return nazev ? nazev : null;
-}
-
 /**
- * Klíč řady zakázky. Pohled zatím vrací jen název, takže slouží i jako
- * kód - appka podle něj filtruje. Jakmile pohled doplní `zakazka_rada_kod`,
- * použije se ten: název se v Heliosu dá přepsat, kód ne.
+ * Číslo řady zakázky. Do naší tabulky jde jako text, i když je v Heliosu
+ * číselné - zachází se s ním stejně jako s kódem útvaru a slouží jen jako
+ * klíč do `typy_zakazek`.
  */
 function typKod(z: ZakazkaZHeliosu): string | null {
-  const kod = z.zakazka_rada_kod;
-  if (kod !== null && kod !== undefined) {
-    const text = String(kod).trim();
-    if (text !== '') return text;
-  }
-  return typNazev(z);
+  const kod = z.zakazka_rada;
+  if (kod === null || kod === undefined) return null;
+  const text = String(kod).trim();
+  return text === "" ? null : text;
 }
 
 export async function synchronizuj(): Promise<{ pocet: number }> {
@@ -58,7 +50,6 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
           typKod: typKod(z),
-          typNazev: typNazev(z),
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,
@@ -78,7 +69,6 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
           typKod: typKod(z),
-          typNazev: typNazev(z),
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,
@@ -128,7 +118,10 @@ export async function synchronizujNaVyzadani(): Promise<
   const ted = Date.now();
   const uplynulo = ted - posledniRucni;
   if (uplynulo < RUCNI_LIMIT_MS) {
-    return { spustena: false, zaSekund: Math.ceil((RUCNI_LIMIT_MS - uplynulo) / 1000) };
+    return {
+      spustena: false,
+      zaSekund: Math.ceil((RUCNI_LIMIT_MS - uplynulo) / 1000),
+    };
   }
   posledniRucni = ted;
   const { pocet } = await synchronizuj();
