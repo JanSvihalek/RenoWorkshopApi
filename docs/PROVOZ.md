@@ -109,6 +109,9 @@ INSERT INTO dbo.dilenske_stavy_ciselnik (kod, nazev, poradi)
 VALUES (N'geometrie', N'Geometrie', 125);
 ```
 
+Založí se skriptem [`docs/sql/dilenske-stavy.sql`](sql/dilenske-stavy.sql),
+který se pouští celý a dá se spustit opakovaně.
+
 Přejmenování stavu nemění historii - v záznamu je uložený text z doby
 zápisu. Vyřazení ze seznamu se dělá `je_aktivni = 0`, ne mazáním; smazaný
 kód by osiřel v záznamech, které na něj odkazují.
