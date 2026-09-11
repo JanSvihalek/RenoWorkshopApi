@@ -47,7 +47,7 @@ Služba má vlastní databázi a v ní dvě oddělené skupiny tabulek:
 | Tabulky | Kdo je vlastní | Co s nimi dělá synchronizace |
 |---|---|---|
 | `helios_zakazky` | Helios | přepisuje obsah, ale **nic nemaže** |
-| `dilenske_stavy`, `poznamky` | RenoWorkshop | **nesahá na ně** |
+| `dilenske_zaznamy`, `poznamky` | RenoWorkshop | **nesahá na ně** |
 
 Úkony (závady) se z Heliosu zatím netahají - aplikace dostane prázdný
 seznam a sekci nezobrazí. Až se to bude rozšiřovat, přibude druhý pohled.
@@ -79,6 +79,42 @@ nespadne (proto tam není cizí klíč). Dohledání chybějících je na konci
 
 Kdyby se synchronizace pokazila, v nejhorším případě přepíše kopie, které
 příští běh natáhne znovu. Práci mechaniků zničit nemůže.
+
+## Dílenské stavy
+
+Zakázka má dva nezávislé stavy:
+
+| | Odkud | Kdo mění |
+|---|---|---|
+| **Stav z Heliosu** | `stav_real` z ERP | Helios, jen ke čtení |
+| **Dílenský stav** | naše databáze | lidé v aplikaci |
+
+Dílenský stav se **přidává, neposouvá**. Oprava po bouračce běží týdny,
+stavy se vracejí i přeskakují (pojišťovna vrátí rozpočet, díl dorazí
+poškozený), takže žádné pravidlo o krocích dopředu neplatí. V tabulce
+`dilenske_zaznamy` je celá historie a **poslední záznam je ten platný** -
+je tak vidět, kdy se co stalo a jak dlouho se na co čekalo.
+
+Zakázka, které stav nikdo nedal, žádný nemá. Z Heliosu se neodvozuje:
+tvrdit za dílnu „Přijato" by znamenalo ukazovat něco, co nikdo nepotvrdil.
+
+### Číselník
+
+Co jde vybrat z nabídky, drží `dilenske_stavy_ciselnik`. Spravuje se ručně
+v databázi a aplikace si ho stahuje, takže přidání stavu **nevyžaduje novou
+verzi v telefonech**:
+
+```sql
+INSERT INTO dbo.dilenske_stavy_ciselnik (kod, nazev, poradi)
+VALUES (N'geometrie', N'Geometrie', 125);
+```
+
+Přejmenování stavu nemění historii - v záznamu je uložený text z doby
+zápisu. Vyřazení ze seznamu se dělá `je_aktivni = 0`, ne mazáním; smazaný
+kód by osiřel v záznamech, které na něj odkazují.
+
+Kdo potřebuje stav mimo nabídku, zapíše v aplikaci vlastní text. Takový
+záznam nemá kód, jinak se chová stejně.
 
 ## Synchronizace
 

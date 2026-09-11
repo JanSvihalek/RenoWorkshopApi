@@ -5,7 +5,7 @@ import {
   utvarProApi,
   zkratNazevUtvaru,
 } from "../src/domain/utvar.js";
-import { jePlatnyPosun, jeUkoncena, vychoziStav } from "../src/domain/stav.js";
+import { jeUkoncena } from "../src/domain/stav.js";
 import { typProApi } from "../src/domain/typy.js";
 
 describe("pobočka z útvaru", () => {
@@ -62,23 +62,6 @@ describe("stavy z Heliosu", () => {
   it("K fakturaci na dílně zůstává, vůz ještě nikdo neodvezl", () => {
     expect(jeUkoncena(36)).toBe(false);
     expect(jeUkoncena(null)).toBe(false);
-  });
-
-  it("výchozí dílenský stav se odvodí z Heliosu", () => {
-    expect(vychoziStav(42)).toBe("waiting_for_parts");
-    expect(vychoziStav(30)).toBe("in_repair");
-    expect(vychoziStav(36)).toBe("ready_for_pickup");
-    expect(vychoziStav(20)).toBe("received");
-    expect(vychoziStav(null)).toBe("received");
-  });
-});
-
-describe("posun stavu", () => {
-  it("povolí jen jeden krok dopředu", () => {
-    expect(jePlatnyPosun("received", "diagnostics")).toBe(true);
-    expect(jePlatnyPosun("received", "in_repair")).toBe(false);
-    expect(jePlatnyPosun("in_repair", "diagnostics")).toBe(false);
-    expect(jePlatnyPosun("picked_up", "picked_up")).toBe(false);
   });
 });
 

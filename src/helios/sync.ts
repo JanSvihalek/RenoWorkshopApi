@@ -1,5 +1,5 @@
 import { prisma } from "../db.js";
-import { jeUkoncena, vychoziStav } from "../domain/stav.js";
+import { jeUkoncena } from "../domain/stav.js";
 import { nactiZakazky, type ZakazkaZHeliosu } from "./cteni.js";
 
 /**
@@ -64,8 +64,9 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           stavRealCislo: z.stav_real,
           stavRealNazev: z.stav_HeN,
           videnoAt: ted,
-          // Výchozí stav jen při prvním vidění zakázky.
-          dilensky: { create: { stav: vychoziStav(z.stav_real) } },
+          // Dílenský stav se z Heliosu neodvozuje. Zakázka ho nemá, dokud
+          // ho někdo na dílně nezadá - tvrdit za něj "Přijato" by znamenalo
+          // ukazovat stav, který nikdo nepotvrdil.
         },
         update: {
           // Zakázka se může na dílnu vrátit (reklamace, dodělávka).

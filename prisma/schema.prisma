@@ -63,8 +63,12 @@ model HeliosZakazka {
   /// Kdy zakázka zmizela z aktivních. `null` = pořád na dílně.
   uzavrenaAt DateTime? @map("uzavrena_at") @db.DateTime2
 
-  dilensky DilenskyStav?
-  poznamky Poznamka[]
+  /// Stání na dílně. Dřív viselo u dílenského stavu, ale se stavem
+  /// nesouvisí - vůz stojí na stejném místě napříč celou opravou.
+  stani String? @db.NVarChar(60)
+
+  dilenskeZaznamy DilenskyZaznam[]
+  poznamky        Poznamka[]
 
   @@index([utvarKod])
   // Seznam v telefonu se ptá právě takhle: aktivní, seřazené podle termínu.
@@ -76,17 +80,49 @@ model HeliosZakazka {
 }
 
 /// Dílenský stav zakázky - to, co v Heliosu není a co posouvají mechanici.
-model DilenskyStav {
-  cisloZakazky String   @id @map("cislo_zakazky") @db.NVarChar(40)
-  stav         String   @db.NVarChar(40)
-  stani        String?  @db.NVarChar(60)
-  zmenenoKym   String?  @map("zmeneno_kym") @db.NVarChar(200)
-  zmenenoUid   String?  @map("zmeneno_uid") @db.NVarChar(128)
-  zmenenoAt    DateTime @updatedAt @map("zmeneno_at") @db.DateTime2
+/// Číselník dílenských stavů - co smí uživatel vybrat z nabídky.
+///
+/// Spravuje se ručně v databázi; na klempírně se sled prací ustálí a pak
+/// se do něj sahá výjimečně. Appka si ho stahuje, takže přidání stavu
+/// nevyžaduje novou verzi v telefonech.
+model DilenskyStavCiselnik {
+  /// Krátký klíč, např. `rozpocet`. Drží i po přejmenování názvu.
+  kod    String  @id @db.NVarChar(40)
+  nazev  String  @db.NVarChar(100)
+  /// Pořadí v nabídce. Stejné číslo = řadí se podle názvu.
+  poradi Int     @default(0)
+  /// Vyřazený stav se přestane nabízet, ale v historii zůstane.
+  jeAktivni Boolean @default(true) @map("je_aktivni")
+
+  @@map("dilenske_stavy_ciselnik")
+}
+
+/// Historie dílenských stavů zakázky. **Poslední záznam je ten platný.**
+///
+/// Oprava po bouračce běží týdny a stavy se vracejí (pojišťovna vrátí
+/// rozpočet, díl dorazí poškozený), takže jeden přepisovaný sloupec by
+/// zahodil to nejcennější - kdy se co stalo a jak dlouho se na co čekalo.
+model DilenskyZaznam {
+  id           String @id @default(cuid()) @db.NVarChar(30)
+  cisloZakazky String @map("cislo_zakazky") @db.NVarChar(40)
+
+  /// Kód z číselníku, nebo `null` u ručně zapsaného stavu („Jiný").
+  kod   String? @db.NVarChar(40)
+
+  /// Text stavu tak, jak se má zobrazit. U číselníkového stavu je to jeho
+  /// název **v době zápisu**: přejmenování v číselníku nesmí zpětně měnit,
+  /// co se na zakázce dělo.
+  nazev String  @db.NVarChar(100)
+
+  zadalKdo String?  @map("zadal_kdo") @db.NVarChar(200)
+  zadalUid String?  @map("zadal_uid") @db.NVarChar(128)
+  zadanoAt DateTime @default(now()) @map("zadano_at") @db.DateTime2
 
   zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
 
-  @@map("dilenske_stavy")
+  // Seznam i detail se ptají na poslední záznam zakázky.
+  @@index([cisloZakazky, zadanoAt])
+  @@map("dilenske_zaznamy")
 }
 
 /// Poznámka mechanika nebo poradce.

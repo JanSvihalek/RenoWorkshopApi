@@ -4,7 +4,6 @@ import { z } from "zod";
 
 import { config } from "../config.js";
 import { prisma } from "../db.js";
-import { jePlatnyPosun, STAVY, type Stav } from "../domain/stav.js";
 import {
   nactiTypyZakazek,
   typProApi,
@@ -14,7 +13,9 @@ import { pobockaZUtvaru, utvarProApi } from "../domain/utvar.js";
 import { synchronizujNaVyzadani } from "../helios/sync.js";
 
 const sVazbami = {
-  dilensky: true,
+  // Celá historie dílenských stavů, nejnovější první - poslední záznam
+  // je ten platný a appka zobrazuje i sled, jak šly za sebou.
+  dilenskeZaznamy: { orderBy: { zadanoAt: "desc" } },
   poznamky: { orderBy: { vytvorenoAt: "desc" } },
 } as const;
 
@@ -29,7 +30,17 @@ function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
     licensePlate: zakazka.spz ?? "",
     model: zakazka.model ?? "",
     customerName: zakazka.zakaznik ?? "",
-    status: zakazka.dilensky?.stav ?? "received",
+    // Dílenský stav: poslední záznam, nebo null u zakázky, které ho
+    // ještě nikdo nedal. Není to výčet - je to text z číselníku.
+    status: zakazka.dilenskeZaznamy[0]?.nazev ?? null,
+    statusCode: zakazka.dilenskeZaznamy[0]?.kod ?? null,
+    statusHistory: zakazka.dilenskeZaznamy.map((zaznam) => ({
+      id: zaznam.id,
+      code: zaznam.kod,
+      label: zaznam.nazev,
+      author: zaznam.zadalKdo,
+      createdAt: zaznam.zadanoAt.toISOString().slice(0, 19),
+    })),
     branch: pobockaZUtvaru(zakazka.utvarKod),
     department: utvarProApi(zakazka.utvarKod, zakazka.utvarNazev),
     orderType: typProApi(zakazka.radaReference, typy),
@@ -38,7 +49,7 @@ function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
     vin: zakazka.vin ?? "",
     mechanicName: null,
     serviceAdvisorName: null,
-    bay: zakazka.dilensky?.stani ?? null,
+    bay: zakazka.stani ?? null,
     heliosStatus: zakazka.stavRealNazev,
     isActive: zakazka.jeAktivni,
     closedAt: zakazka.uzavrenaAt?.toISOString().slice(0, 19) ?? null,
@@ -137,46 +148,71 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
     },
   );
 
-  const posunSchema = z.object({ status: z.enum(STAVY) });
+  /**
+   * Přidání dílenského stavu.
+   *
+   * Stav se **přidává**, neposouvá: oprava po bouračce se vrací i
+   * přeskakuje (pojišťovna vrátí rozpočet, díl dorazí poškozený), takže
+   * žádné pravidlo o krocích dopředu neplatí.
+   *
+   * Buď `code` z číselníku, nebo `label` s vlastním textem. Název se
+   * ukládá i u číselníkového stavu - přejmenování v číselníku nesmí
+   * zpětně přepsat, co se na zakázce dělo.
+   */
+  const stavSchema = z
+    .object({
+      code: z.string().trim().min(1).max(40).optional(),
+      label: z.string().trim().min(1).max(100).optional(),
+    })
+    .refine((telo) => telo.code || telo.label, {
+      message: "Uveďte code z číselníku, nebo vlastní label.",
+    });
 
-  server.patch<{ Params: { id: string } }>(
-    "/orders/:id",
+  server.post<{ Params: { id: string } }>(
+    "/orders/:id/stavy",
     async (request, reply) => {
-      const telo = posunSchema.safeParse(request.body);
+      const telo = stavSchema.safeParse(request.body);
       if (!telo.success) {
         return reply.code(400).send({
-          error: { code: "bad_request", message: "Neznámý stav zakázky." },
+          error: {
+            code: "bad_request",
+            message: "Uveďte stav z číselníku, nebo vlastní text.",
+          },
         });
       }
 
       const zakazka = await nactiJednu(request.params.id);
       if (!zakazka) return reply.code(404).send(nenalezena);
 
-      const soucasny = (zakazka.dilensky?.stav ?? "received") as Stav;
-      if (!jePlatnyPosun(soucasny, telo.data.status)) {
-        // Aplikace nabízí jen následující krok, ale spoléhat se na to nedá.
-        return reply.code(409).send({
-          error: {
-            code: "invalid_transition",
-            message: "Stav lze posunout jen o jeden krok dopředu.",
-          },
+      let kod: string | null = null;
+      let nazev = telo.data.label ?? "";
+
+      if (telo.data.code) {
+        const zCiselniku = await prisma.dilenskyStavCiselnik.findUnique({
+          where: { kod: telo.data.code },
         });
+        if (!zCiselniku) {
+          return reply.code(400).send({
+            error: {
+              code: "unknown_status",
+              message: "Takový stav v číselníku není.",
+            },
+          });
+        }
+        kod = zCiselniku.kod;
+        // Název z číselníku má přednost: kdyby appka poslala obojí,
+        // platí to, co je v číselníku teď.
+        nazev = zCiselniku.nazev;
       }
 
-      const kdo =
-        request.zamestnanec?.jmeno ?? request.zamestnanec?.email ?? null;
-      await prisma.dilenskyStav.upsert({
-        where: { cisloZakazky: zakazka.cisloZakazky },
-        create: {
+      await prisma.dilenskyZaznam.create({
+        data: {
           cisloZakazky: zakazka.cisloZakazky,
-          stav: telo.data.status,
-          zmenenoKym: kdo,
-          zmenenoUid: request.zamestnanec?.uid ?? null,
-        },
-        update: {
-          stav: telo.data.status,
-          zmenenoKym: kdo,
-          zmenenoUid: request.zamestnanec?.uid ?? null,
+          kod,
+          nazev,
+          zadalKdo:
+            request.zamestnanec?.jmeno ?? request.zamestnanec?.email ?? null,
+          zadalUid: request.zamestnanec?.uid ?? null,
         },
       });
 
@@ -187,6 +223,15 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
       return doOdpovedi(aktualni, await nactiTypyZakazek());
     },
   );
+
+  /** Číselník pro nabídku v aplikaci. Vyřazené stavy se nenabízejí. */
+  server.get("/stavy", async () => {
+    const stavy = await prisma.dilenskyStavCiselnik.findMany({
+      where: { jeAktivni: true },
+      orderBy: [{ poradi: "asc" }, { nazev: "asc" }],
+    });
+    return stavy.map((stav) => ({ code: stav.kod, label: stav.nazev }));
+  });
 
   const poznamkaSchema = z.object({
     text: z.string().trim().min(1).max(2000),
