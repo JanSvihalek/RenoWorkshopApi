@@ -119,6 +119,10 @@ model DilenskyZaznam {
   /// co se na zakázce dělo.
   nazev String  @db.NVarChar(100)
 
+  /// Co k tomu stavu patří - kde vůz stojí, na kterém zvedáku, na co se
+  /// čeká. „Připraveno, stání 4" je jiná informace než holé „Připraveno".
+  poznamka String? @db.NVarChar(500)
+
   zadalKdo String?  @map("zadal_kdo") @db.NVarChar(200)
   zadalUid String?  @map("zadal_uid") @db.NVarChar(128)
   zadanoAt DateTime @default(now()) @map("zadano_at") @db.DateTime2

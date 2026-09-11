@@ -38,6 +38,7 @@ function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
       id: zaznam.id,
       code: zaznam.kod,
       label: zaznam.nazev,
+      note: zaznam.poznamka,
       author: zaznam.zadalKdo,
       createdAt: zaznam.zadanoAt.toISOString().slice(0, 19),
     })),
@@ -169,6 +170,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
     .object({
       code: z.string().trim().min(1).max(40).optional(),
       label: z.string().trim().min(1).max(100).optional(),
+      note: z.string().trim().max(500).optional(),
     })
     .refine((telo) => telo.code || telo.label, {
       message: "Uveďte code z číselníku, nebo vlastní label.",
@@ -216,6 +218,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
           cisloZakazky: zakazka.cisloZakazky,
           kod,
           nazev,
+          poznamka: telo.data.note || null,
           zadalKdo:
             request.zamestnanec?.jmeno ?? request.zamestnanec?.email ?? null,
           zadalUid: request.zamestnanec?.uid ?? null,

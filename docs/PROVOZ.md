@@ -128,6 +128,10 @@ kód by osiřel v záznamech, které na něj odkazují.
 Kdo potřebuje stav mimo nabídku, zapíše v aplikaci vlastní text. Takový
 záznam nemá kód, jinak se chová stejně.
 
+Ke stavu se dá připsat **poznámka** - kde vůz stojí, na kterém je zvedáku,
+na co se čeká. Drží se u konkrétního záznamu, takže je vidět v historii
+u toho kroku, ke kterému patří.
+
 Omylem přidaný stav jde v aplikaci smazat. Je to pracovní přehled dílny,
 ne auditní doklad, takže nemá cenu vláčet historií překlep; opravou je
 smazat a přidat znovu. Mazat smí kdokoli přihlášený - u telefonu na dílně
