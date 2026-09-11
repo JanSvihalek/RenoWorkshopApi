@@ -128,6 +128,11 @@ kód by osiřel v záznamech, které na něj odkazují.
 Kdo potřebuje stav mimo nabídku, zapíše v aplikaci vlastní text. Takový
 záznam nemá kód, jinak se chová stejně.
 
+Omylem přidaný stav jde v aplikaci smazat. Je to pracovní přehled dílny,
+ne auditní doklad, takže nemá cenu vláčet historií překlep; opravou je
+smazat a přidat znovu. Mazat smí kdokoli přihlášený - u telefonu na dílně
+se lidé střídají.
+
 ## Synchronizace
 
 Časovač v Node službě, výchozí interval **300 vteřin** (`SYNC_INTERVAL_SECONDS`).

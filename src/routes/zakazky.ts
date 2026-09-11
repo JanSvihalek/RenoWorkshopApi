@@ -230,6 +230,47 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
     },
   );
 
+  /**
+   * Smaže jeden záznam z historie stavů.
+   *
+   * Omylem přidaný stav nemá cenu vláčet historií - je to pracovní
+   * přehled dílny, ne auditní doklad. Opravou je smazat a přidat znovu.
+   *
+   * Mazat smí kdokoli přihlášený: na dílně se u telefonu střídají lidé
+   * a čekat na toho, kdo se ťukl, by znamenalo nechat tam nesmysl.
+   */
+  server.delete<{ Params: { id: string; zaznamId: string } }>(
+    "/orders/:id/stavy/:zaznamId",
+    async (request, reply) => {
+      const zakazka = await nactiJednu(request.params.id);
+      if (!zakazka) return reply.code(404).send(nenalezena);
+
+      const smazano = await prisma.dilenskyZaznam.deleteMany({
+        where: {
+          id: request.params.zaznamId,
+          // Vázané na zakázku z adresy: jinak by šlo cizím ID smazat
+          // záznam u úplně jiné zakázky.
+          cisloZakazky: zakazka.cisloZakazky,
+        },
+      });
+
+      if (smazano.count === 0) {
+        return reply.code(404).send({
+          error: {
+            code: "not_found",
+            message: "Takový záznam u zakázky není.",
+          },
+        });
+      }
+
+      const aktualni = await prisma.heliosZakazka.findUniqueOrThrow({
+        where: { cisloZakazky: zakazka.cisloZakazky },
+        include: sVazbami,
+      });
+      return doOdpovedi(aktualni, await nactiTypyZakazek());
+    },
+  );
+
   /** Číselník pro nabídku v aplikaci. Vyřazené stavy se nenabízejí. */
   server.get("/stavy", async () => {
     const stavy = await prisma.dilenskyStavCiselnik.findMany({
