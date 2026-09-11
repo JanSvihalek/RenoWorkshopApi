@@ -47,7 +47,10 @@ function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
     receivedAt: zakazka.datumPrijeti?.toISOString().slice(0, 19) ?? null,
     dueAt: zakazka.terminDokonceni?.toISOString().slice(0, 19) ?? null,
     vin: zakazka.vin ?? "",
-    mechanicName: null,
+    // Zodpovědná osoba z Heliosu. V aplikaci je to pole, které se
+    // zobrazuje u zakázky jako "Zodpovídá".
+    mechanicName: zakazka.zodpovida,
+    mechanicCode: zakazka.zodpovidaKod,
     serviceAdvisorName: null,
     bay: zakazka.stani ?? null,
     heliosStatus: zakazka.stavRealNazev,

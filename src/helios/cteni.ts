@@ -33,6 +33,14 @@ export type ZakazkaZHeliosu = {
    * jestli se dřív nasadí služba, nebo upraví pohled.
    */
   zakazka_rada?: string | number | null;
+
+  /**
+   * Kdo za zakázku zodpovídá - kód a jméno z `subjekty`. Nepovinné jako
+   * ostatní pozdější doplňky: dokud je pohled nevrací, chybí a nic se
+   * nerozbije.
+   */
+  zodpovida_kod?: string | null;
+  zodpovida?: string | null;
 };
 
 export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {

@@ -12,6 +12,12 @@ import { nactiZakazky, type ZakazkaZHeliosu } from "./cteni.js";
  * v Heliosu, aby seznam nezačínal se vším na „Přijato". Od té chvíle
  * rozhoduje mechanik a Helios do stavu nemluví.
  */
+/** Prázdný řetězec z Heliosu bereme jako nevyplněno. */
+function text(hodnota: string | null | undefined): string | null {
+  const orezane = hodnota?.trim();
+  return orezane ? orezane : null;
+}
+
 /**
  * Číslo řady zakázky. Do naší tabulky jde jako text, i když je v Heliosu
  * číselné - zachází se s ním stejně jako s kódem útvaru a slouží jen jako
@@ -59,6 +65,8 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
           radaReference: radaReference(z),
+          zodpovidaKod: text(z.zodpovida_kod),
+          zodpovida: text(z.zodpovida),
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,
@@ -79,6 +87,8 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
           radaReference: radaReference(z),
+          zodpovidaKod: text(z.zodpovida_kod),
+          zodpovida: text(z.zodpovida),
           datumPrijeti: z.datum_prijeti,
           terminDokonceni: z.predpoklad_datum_dokonceni,
           stavRealCislo: z.stav_real,

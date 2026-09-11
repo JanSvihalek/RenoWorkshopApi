@@ -47,6 +47,11 @@ model HeliosZakazka {
   /// Šířka 50: `reference_subjektu` v Heliosu není jen trojčíslí, jak se
   /// zdálo z číselníku - kratší sloupec první synchronizaci shodil (P2000).
   radaReference   String?   @map("rada_reference") @db.NVarChar(50)
+
+  /// Kdo za zakázku v Heliosu zodpovídá. Kód i jméno, stejně jako útvar:
+  /// kód je stabilní klíč, jméno se zobrazuje.
+  zodpovidaKod    String?   @map("zodpovida_kod") @db.NVarChar(50)
+  zodpovida       String?   @db.NVarChar(200)
   datumPrijeti    DateTime? @map("datum_prijeti") @db.DateTime2
   terminDokonceni DateTime? @map("termin_dokonceni") @db.DateTime2
   stavRealCislo   Int?      @map("stav_real_cislo")

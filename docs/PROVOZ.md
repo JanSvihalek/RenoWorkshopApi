@@ -40,6 +40,15 @@ serveru - vzdálený účet má práva pouze `SELECT`.
 K ověření potřebuje služba **service account klíč** Firebase (JSON) v cestě
 z `GOOGLE_APPLICATION_CREDENTIALS`. Ten se do gitu nedává.
 
+## Zodpovědná osoba
+
+Kdo za zakázku zodpovídá, vede Helios (`hlv.zodpovida` → `subjekty`).
+Pohled vrací kód i jméno; do našich tabulek jdou oba, do API se posílá
+jméno jako `mechanicName` a kód jako `mechanicCode`.
+
+Sloupce se zakládají skriptem [`docs/sql/zodpovida.sql`](sql/zodpovida.sql).
+Aplikace to pole nikdy nemění - je to údaj z ERP.
+
 ## Odkud jsou data
 
 Služba má vlastní databázi a v ní dvě oddělené skupiny tabulek:
