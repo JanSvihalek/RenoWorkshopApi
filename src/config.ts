@@ -18,8 +18,6 @@ const schema = z.object({
 
   SYNC_INTERVAL_SECONDS: z.coerce.number().int().min(30).default(300),
 
-  // Kolik měsíců zpět posílat do telefonu. Seznam drží jen rozdělané
-  // zakázky z tohohle okna; starší se dohledávají hledáním, v databázi
 
   // Kolik zakázek nejvýš vrátí hledání v archivu.
   HLEDANI_LIMIT: z.coerce.number().int().min(10).max(500).default(100),
