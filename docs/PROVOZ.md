@@ -148,11 +148,13 @@ Je omezená na **jedno volání za minutu pro celou dílnu**, další dostane `4
 
 ## Co se děje při práci v aplikaci
 
-**Otevření seznamu** — `GET /api/orders` vrací **jen rozdělané zakázky za
-poslední tři měsíce** (`SEZNAM_MESICU`). Uzavřených jsou desítky tisíc a
-aplikace si seznam drží v paměti, aby filtrovala a hledala bez čekání —
-proto se do telefonu neposílají. Čte se jen z naší databáze, do Heliosu
-se přitom nesahá. Data mohou být až pět minut stará.
+**Otevření seznamu** — `GET /api/orders` vrací **všechny rozdělané
+zakázky**, bez ohledu na stáří. Časové okno tu dřív bylo, ale na klempírně
+je to chyba: oprava po bouračce běží i půl roku a vůz mezitím stojí v hale.
+Uzavřených jsou desítky tisíc a do telefonu se neposílají — aplikace si
+seznam drží v paměti, aby filtrovala a hledala bez čekání; dohledají se
+přes hledání. Čte se jen z naší databáze, do Heliosu se přitom nesahá.
+Data mohou být až pět minut stará.
 
 **Dohledání staré zakázky** — `GET /api/orders/search?q=...` prohledá
 **celý archiv** včetně uzavřených, podle čísla zakázky, VIN, SPZ nebo

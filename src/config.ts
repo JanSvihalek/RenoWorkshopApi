@@ -20,8 +20,6 @@ const schema = z.object({
 
   // Kolik měsíců zpět posílat do telefonu. Seznam drží jen rozdělané
   // zakázky z tohohle okna; starší se dohledávají hledáním, v databázi
-  // zůstávají napořád. Změna se projeví restartem služby, ne novým buildem.
-  SEZNAM_MESICU: z.coerce.number().int().min(1).max(60).default(3),
 
   // Kolik zakázek nejvýš vrátí hledání v archivu.
   HLEDANI_LIMIT: z.coerce.number().int().min(10).max(500).default(100),

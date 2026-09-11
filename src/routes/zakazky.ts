@@ -78,19 +78,22 @@ const nenalezena = {
 
 export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
   /**
-   * Seznam pro telefon: **jen rozdělané zakázky** z posledních měsíců
-   * (`SEZNAM_MESICU`). Uzavřené se sem schválně neposílají - je jich
-   * desítky tisíc a aplikace si seznam drží v paměti, aby filtrovala
-   * a hledala bez čekání. Starší se dohledávají přes `/orders/search`.
+   * Seznam pro telefon: **všechny rozdělané zakázky**, bez ohledu na stáří.
+   *
+   * Časové okno tu dřív bylo, ale na klempírně je to chyba: oprava po
+   * bouračce běží i půl roku a vůz mezitím stojí v hale. Zakázka, která
+   * mizí ze seznamu, přestože na ní někdo pracuje, je horší než delší
+   * seznam.
+   *
+   * Uzavřené se neposílají - je jich desítky tisíc a aplikace si seznam
+   * drží v paměti, aby filtrovala a hledala bez čekání. Dohledají se
+   * přes `/orders/search`.
    */
   server.get("/orders", async () => {
-    const od = new Date();
-    od.setMonth(od.getMonth() - config.SEZNAM_MESICU);
-
     const zakazky = await prisma.heliosZakazka.findMany({
-      where: { jeAktivni: true, datumPrijeti: { gte: od } },
+      where: { jeAktivni: true },
       include: sVazbami,
-      orderBy: { terminDokonceni: "asc" },
+      orderBy: { datumPrijeti: "desc" },
     });
     const typy = await nactiTypyZakazek();
     return zakazky.map((zakazka) => doOdpovedi(zakazka, typy));
