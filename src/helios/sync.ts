@@ -39,6 +39,17 @@ function radaReference(z: ZakazkaZHeliosu): string | null {
 /** Musí odpovídat NVarChar(50) u `rada_reference` v prisma/schema.prisma. */
 const DELKA_RADY = 50;
 
+/**
+ * `cislo_subjektu` z Heliosu jako číslo. Nečekaná hodnota se zahodí,
+ * ne vyhodí: zakázka pak jen nemá odkaz na vozidlo, což je pořád lepší
+ * než spadlá synchronizace celé dílny.
+ */
+function cislo(hodnota: number | string | null | undefined): number | null {
+  if (hodnota === null || hodnota === undefined || hodnota === "") return null;
+  const prevedene = Number(hodnota);
+  return Number.isInteger(prevedene) ? prevedene : null;
+}
+
 export async function synchronizuj(): Promise<{ pocet: number }> {
   const beh = await prisma.synchronizace.create({
     data: { zacatekAt: new Date() },
@@ -65,6 +76,8 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
           radaReference: radaReference(z),
+          vozidloId: cislo(z.vozidlo_id),
+          organizaceId: cislo(z.organizace_id),
           zodpovidaKod: text(z.zodpovida_kod),
           zodpovida: text(z.zodpovida),
           datumPrijeti: z.datum_prijeti,
@@ -87,6 +100,8 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           utvarKod: z.utvar,
           utvarNazev: z.utvar_nazev,
           radaReference: radaReference(z),
+          vozidloId: cislo(z.vozidlo_id),
+          organizaceId: cislo(z.organizace_id),
           zodpovidaKod: text(z.zodpovida_kod),
           zodpovida: text(z.zodpovida),
           datumPrijeti: z.datum_prijeti,

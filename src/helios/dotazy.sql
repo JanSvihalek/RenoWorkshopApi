@@ -32,6 +32,12 @@ SELECT hlv.reference_subjektu AS c_zakazky,
        hlv.datum_zprovozneni  AS predpoklad_datum_dokonceni,
        hlv.stav_real,
        val.display_value      AS stav_HeN,
+       -- Vozidlo a organizace jako klíče, ne jen jako text. Pohled se přes
+       -- ně joinoval odjakživa, jen je nevracel. Slouží k poskládání
+       -- historie vozu: naskenuje se SPZ, najde vozidlo a k němu všechny
+       -- jeho zakázky napříč lety.
+       hlv.vozidlo            AS vozidlo_id,
+       hlv.organizace         AS organizace_id,
        -- Číslo řady zakázky (801 běžná, 802 interní, 803 PDI...).
        -- Schválně číslo, ne název: název se dá v Heliosu přepsat a filtr
        -- zapnutý v telefonu by pak přestal sedět. Názvy k číslům drží

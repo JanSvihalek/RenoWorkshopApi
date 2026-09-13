@@ -41,6 +41,15 @@ export type ZakazkaZHeliosu = {
    */
   zodpovida_kod?: string | null;
   zodpovida?: string | null;
+
+  /**
+   * `cislo_subjektu` vozidla a organizace z Heliosu. Pohled je zná odjakživa
+   * (joinuje se přes ně na `ino_vozidlo` a `organizace`), jen je nevracel.
+   * Nepovinné jako ostatní doplňky - dokud je pohled neposílá, zakázka je
+   * nemá a nic se nerozbije.
+   */
+  vozidlo_id?: number | string | null;
+  organizace_id?: number | string | null;
 };
 
 export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {

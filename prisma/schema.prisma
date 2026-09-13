@@ -50,6 +50,19 @@ model HeliosZakazka {
 
   /// Kdo za zakázku v Heliosu zodpovídá. Kód i jméno, stejně jako útvar:
   /// kód je stabilní klíč, jméno se zobrazuje.
+  /// Vozidlo a organizace z Heliosu (`cislo_subjektu`). Klíč do zrcadel
+  /// `helios_vozidla` a `helios_organizace`, přes který se skládá historie
+  /// vozu: naskenuje se SPZ, najde vozidlo a k němu všechny jeho zakázky.
+  ///
+  /// Bez cizího klíče, ze stejného důvodu jako u `rada_reference`: zakázka
+  /// na vozidlo, které se ještě nedotáhlo, nesmí shodit celou synchronizaci.
+  ///
+  /// `spz`, `vin` a `zakaznik` zůstávají i tady schválně. Není to duplicita,
+  /// ale snímek stavu při přijetí - vůz může za dva roky změnit majitele
+  /// i značku a stará zakázka má ukazovat, jak to bylo tehdy.
+  vozidloId       Int?      @map("vozidlo_id")
+  organizaceId    Int?      @map("organizace_id")
+
   zodpovidaKod    String?   @map("zodpovida_kod") @db.NVarChar(50)
   zodpovida       String?   @db.NVarChar(200)
   datumPrijeti    DateTime? @map("datum_prijeti") @db.DateTime2
@@ -81,6 +94,8 @@ model HeliosZakazka {
   // Hledání v archivu podle SPZ nebo VIN.
   @@index([spz])
   @@index([vin])
+  // Historie vozu: všechny zakázky jednoho vozidla, od nejnovější.
+  @@index([vozidloId, datumPrijeti])
   @@map("helios_zakazky")
 }
 
