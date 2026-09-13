@@ -4,8 +4,8 @@
 -- je jeho verzovaná kopie. Když se pohled změní, přepiš i tenhle soubor,
 -- ať je v historii vidět proč.
 --
--- Zatím jen zakázky. Úkony (závady) se do appky netahají - až se to bude
--- rozšiřovat, přibude druhý pohled, aby se zakázky nenásobily.
+-- Zakázky a k nim čtyři zrcadla: vozidla, zákazníci, číselník značek
+-- a modelů a kontaktní osoby. Úkony (závady) se do appky netahají.
 --
 -- Pozor na čtyřdílné názvy `RAS_HEN.RNC_ostra.lcs.*`: pohled vzniká
 -- v databázi RenoWorkshop na RENDCAPPu, kde schéma `lcs` neexistuje.
@@ -69,6 +69,67 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
             ON hlv.zakazka_hlavni = rada.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
        AND hlv.stav_real <> 10;
+go
+
+-- =====================================================================
+-- Zrcadla: vozidla, zákazníci, modely, kontakty
+-- =====================================================================
+--
+-- Prostý opis tabulek z Heliosu, bez filtru. Slouží vyhledávání: naskenuje
+-- se SPZ, najde vozidlo a od něj majitel a všechny jeho zakázky.
+--
+-- Sloupce jsou vypsané jménem schválně, ne `select *`:
+--   * přes linkovaný server jde po síti všechno, co pohled vrátí, a LCS
+--     tabulky mají přes sto sloupců,
+--   * kopírovat osobní údaje, které aplikace nepoužije, nemá smysl,
+--   * pohled založený přes `select *` si seznam sloupců zapamatuje při
+--     vzniku a po změně tabulky vrací starou strukturu, dokud na něj
+--     někdo nepustí `sp_refreshview`.
+--
+-- Pohledy musí zůstat **prosté**. Synchronizace se na nové záznamy doptává
+-- dotazem `where cislo_subjektu in (...)` a spoléhá, že se podmínka propíše
+-- až na Helios. S `openquery`, `distinct` nebo agregací by to přestalo
+-- platit a místo dvou řádků by se přetáhla celá tabulka.
+
+if object_id('dbo.v_renoworkshop_vozidlo') is not null
+    drop view dbo.v_renoworkshop_vozidlo;
+go
+
+create view dbo.v_renoworkshop_vozidlo as
+SELECT cislo_subjektu, reference_subjektu, nazev_subjektu, spz,
+       vyr_cislo_karoserie, znackamodel, majitel, kontaktni_osoba,
+       stav_tachometru, prodej_datum
+FROM   RAS_HEN.RNC_ostra.lcs.ino_vozidlo;
+go
+
+if object_id('dbo.v_renoworkshop_organizace') is not null
+    drop view dbo.v_renoworkshop_organizace;
+go
+
+create view dbo.v_renoworkshop_organizace as
+SELECT cislo_subjektu, reference_subjektu, nazev_subjektu, ico, dic, ulice,
+       misto, psc, telefon, e_mail, cislo_co, cislo_cp, ulice_ds
+FROM   RAS_HEN.RNC_ostra.lcs.organizace;
+go
+
+if object_id('dbo.v_renoworkshop_model') is not null
+    drop view dbo.v_renoworkshop_model;
+go
+
+create view dbo.v_renoworkshop_model as
+SELECT cislo_subjektu, reference_subjektu, nazev_subjektu, serie,
+       nazev_dlouhy, palivo, motor
+FROM   RAS_HEN.RNC_ostra.lcs.ino_znackamodel;
+go
+
+if object_id('dbo.v_renoworkshop_kontakty') is not null
+    drop view dbo.v_renoworkshop_kontakty;
+go
+
+create view dbo.v_renoworkshop_kontakty as
+SELECT cislo_subjektu, jmeno, prijmeni, ulice_domu, misto_domu, psc_domu,
+       e_mail, telefon_mobil
+FROM   RAS_HEN.RNC_ostra.lcs.kontaktni_osoby;
 go
 
 -- ---------------------------------------------------------------------

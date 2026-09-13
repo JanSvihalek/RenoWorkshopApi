@@ -99,6 +99,87 @@ model HeliosZakazka {
   @@map("helios_zakazky")
 }
 
+/// Značka a model z Heliosu. Zrcadlo číselníku `ino_znackamodel`.
+///
+/// Malá tabulka, která se skoro nemění - tahá se celá v nočním běhu
+/// a nikdy se na ni nedoptáváme. Palivo a motor jsou tady, ne u vozidla:
+/// v Heliosu je vede model, ne konkrétní kus.
+model HeliosModel {
+  id Int @id @map("cislo_subjektu")
+
+  reference   String? @map("reference_subjektu") @db.NVarChar(50)
+  nazev       String? @map("nazev_subjektu") @db.NVarChar(255)
+  serie       String? @db.NVarChar(100)
+  nazevDlouhy String? @map("nazev_dlouhy") @db.NVarChar(255)
+  palivo      String? @db.NVarChar(100)
+  motor       String? @db.NVarChar(255)
+
+  videnoAt DateTime @map("videno_at") @db.DateTime2
+
+  @@map("helios_modely")
+}
+
+/// Kontaktní osoba z Heliosu. Zrcadlo tabulky `kontaktni_osoby`.
+///
+/// Komu se na dílně volá. Visí na vozidle, ne na organizaci - u firemního
+/// vozu je to řidič, který s autem přijel, ne někdo z účtárny.
+model HeliosKontakt {
+  id Int @id @map("cislo_subjektu")
+
+  jmeno    String? @db.NVarChar(255)
+  prijmeni String? @db.NVarChar(255)
+
+  uliceDomu String? @map("ulice_domu") @db.NVarChar(255)
+  mistoDomu String? @map("misto_domu") @db.NVarChar(255)
+  pscDomu   String? @map("psc_domu") @db.NVarChar(20)
+
+  email        String? @db.NVarChar(255)
+  telefonMobil String? @map("telefon_mobil") @db.NVarChar(60)
+
+  videnoAt DateTime @map("videno_at") @db.DateTime2
+
+  @@map("helios_kontakty")
+}
+
+/// Vozidlo z Heliosu. Zrcadlo tabulky `ino_vozidlo`, celé bez filtru.
+///
+/// Tohle je vstupní bod vyhledávání: naskenuje se SPZ, najde se vozidlo
+/// a od něj se jde na majitele a na všechny jeho zakázky napříč lety.
+///
+/// Identita vozu je VIN, ne SPZ. SPZ se při přeregistraci mění a stejná
+/// značka může časem patřit jinému autu - proto se hledá podle obou
+/// a klíčem zůstává `cislo_subjektu` z Heliosu.
+model HeliosVozidlo {
+  /// `cislo_subjektu` z Heliosu. Klíč, přes který na vozidlo ukazuje
+  /// `helios_zakazky.vozidlo_id`.
+  id Int @id @map("cislo_subjektu")
+
+  reference String? @map("reference_subjektu") @db.NVarChar(50)
+  nazev     String? @map("nazev_subjektu") @db.NVarChar(255)
+
+  spz String? @db.NVarChar(30)
+
+  /// V Heliosu `vyr_cislo_karoserie`.
+  vin String? @db.NVarChar(50)
+
+  /// Klíče do dalších zrcadel. Bez cizích klíčů, stejně jako u zakázky:
+  /// vozidlo s majitelem, který se ještě nedotáhl, nesmí shodit celou
+  /// synchronizaci.
+  znackamodelId    Int? @map("znackamodel")
+  majitelId        Int? @map("majitel")
+  kontaktniOsobaId Int? @map("kontaktni_osoba")
+
+  stavTachometru Int?      @map("stav_tachometru")
+  prodejDatum    DateTime? @map("prodej_datum") @db.DateTime2
+
+  videnoAt DateTime @map("videno_at") @db.DateTime2
+
+  // Hledání po naskenování kódu. VIN je spolehlivější, SPZ rychlejší.
+  @@index([spz])
+  @@index([vin])
+  @@map("helios_vozidla")
+}
+
 /// Zákazník z Heliosu. Zrcadlo tabulky `organizace`, celé bez filtru.
 ///
 /// Slouží k tomu, aby po naskenování SPZ šlo ukázat majitele vozu, aniž by
