@@ -4,6 +4,14 @@
 -- je jeho verzovaná kopie. Když se pohled změní, přepiš i tenhle soubor,
 -- ať je v historii vidět proč.
 --
+-- POZOR: kopie zakázkového pohledu níže je ZASTARALÁ. Na serveru má navíc
+-- zodpovědnou osobu (zodpovida_kod, zodpovida), která se sem nepromítla.
+-- Nespouštěj ho, dokud se nedoplní - `drop view` by o ni server připravil
+-- a aplikace by ji tiše přestala ukazovat.
+--
+-- Na založení nových pohledů slouží docs/sql/pohledy-zrcadla.sql, ten se
+-- zakázkového nedotýká.
+--
 -- Zakázky a k nim čtyři zrcadla: vozidla, zákazníci, číselník značek
 -- a modelů a kontaktní osoby. Úkony (závady) se do appky netahají.
 --
