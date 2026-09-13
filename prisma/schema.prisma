@@ -99,6 +99,49 @@ model HeliosZakazka {
   @@map("helios_zakazky")
 }
 
+/// Zákazník z Heliosu. Zrcadlo tabulky `organizace`, celé bez filtru.
+///
+/// Slouží k tomu, aby po naskenování SPZ šlo ukázat majitele vozu, aniž by
+/// se appka musela ptát Heliosu. Zakázka si přitom svého zákazníka drží
+/// vlastní (sloupec `zakaznik`): tady je stav dnešní, tam stav při přijetí.
+///
+/// Šířky jsou schválně velkorysejší než v Heliosu. Užší sloupec by při
+/// nečekaně dlouhé hodnotě shodil celou synchronizaci (P2000), širší
+/// nestojí na SQL Serveru nic - `nvarchar` je proměnné délky.
+model HeliosOrganizace {
+  /// `cislo_subjektu` z Heliosu. Klíč, přes který na organizaci ukazuje
+  /// `helios_zakazky.organizace_id`.
+  id Int @id @map("cislo_subjektu")
+
+  /// Číslo zákazníka, kterým ho pojmenují lidé na příjmu.
+  reference String? @map("reference_subjektu") @db.NVarChar(50)
+  nazev     String? @map("nazev_subjektu") @db.NVarChar(255)
+
+  ico String? @db.NVarChar(20)
+  dic String? @db.NVarChar(30)
+
+  ulice   String? @db.NVarChar(255)
+  cisloCp String? @map("cislo_cp") @db.NVarChar(20)
+  cisloCo String? @map("cislo_co") @db.NVarChar(20)
+  misto   String? @db.NVarChar(255)
+  psc     String? @db.NVarChar(20)
+
+  /// Druhá adresa z Heliosu (`ulice_ds`).
+  uliceDs String? @map("ulice_ds") @db.NVarChar(255)
+
+  telefon String? @db.NVarChar(60)
+  email   String? @db.NVarChar(255)
+
+  /// Kdy záznam naposledy potvrdila synchronizace. Nemaže se nic - zákazník
+  /// zrušený v Heliosu má zůstat čitelný u svých starých zakázek.
+  videnoAt DateTime @map("videno_at") @db.DateTime2
+
+  // Hledání zákazníka podle jména nebo IČO.
+  @@index([nazev])
+  @@index([ico])
+  @@map("helios_organizace")
+}
+
 /// Dílenský stav zakázky - to, co v Heliosu není a co posouvají mechanici.
 /// Číselník dílenských stavů - co smí uživatel vybrat z nabídky.
 ///
