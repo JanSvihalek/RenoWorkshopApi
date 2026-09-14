@@ -13,7 +13,7 @@ import {
   type OrganizaceZHeliosu,
   type VozidloZHeliosu,
 } from "./cteni.js";
-import { ulozDavkove, type Radek } from "./davka.js";
+import { ulozDavkove, type Radek, type Sloupec } from "./davka.js";
 
 /**
  * Zrcadla vozidel, zákazníků, modelů a kontaktů.
@@ -32,9 +32,15 @@ import { ulozDavkove, type Radek } from "./davka.js";
  * u svých starých zakázek.
  */
 
-/** Prázdný řetězec z Heliosu bereme jako nevyplněno. */
-function text(hodnota: string | null | undefined): string | null {
-  const orezane = hodnota?.trim();
+/**
+ * Text z Heliosu. Prázdný řetězec bereme jako nevyplněno.
+ *
+ * Přijímá i číslo: PSČ, IČO nebo číslo popisné bývají v LCS podle tabulky
+ * jednou text a jednou číslo, a `.trim()` na čísle by shodilo celou dávku.
+ */
+function text(hodnota: string | number | null | undefined): string | null {
+  if (hodnota === null || hodnota === undefined) return null;
+  const orezane = String(hodnota).trim();
   return orezane ? orezane : null;
 }
 
@@ -47,58 +53,58 @@ function cislo(hodnota: number | string | null | undefined): number | null {
 
 const KLIC = "cislo_subjektu";
 
-const SLOUPCE_VOZIDLA = [
-  "cislo_subjektu",
-  "reference_subjektu",
-  "nazev_subjektu",
-  "spz",
-  "vin",
-  "znackamodel",
-  "majitel",
-  "kontaktni_osoba",
-  "stav_tachometru",
-  "prodej_datum",
-  "videno_at",
+const SLOUPCE_VOZIDLA: Sloupec[] = [
+  { nazev: "cislo_subjektu", typ: "int" },
+  { nazev: "reference_subjektu", typ: "nvarchar(50)" },
+  { nazev: "nazev_subjektu", typ: "nvarchar(255)" },
+  { nazev: "spz", typ: "nvarchar(30)" },
+  { nazev: "vin", typ: "nvarchar(50)" },
+  { nazev: "znackamodel", typ: "int" },
+  { nazev: "majitel", typ: "int" },
+  { nazev: "kontaktni_osoba", typ: "int" },
+  { nazev: "stav_tachometru", typ: "int" },
+  { nazev: "prodej_datum", typ: "datetime2" },
+  { nazev: "videno_at", typ: "datetime2" },
 ];
 
-const SLOUPCE_ORGANIZACE = [
-  "cislo_subjektu",
-  "reference_subjektu",
-  "nazev_subjektu",
-  "ico",
-  "dic",
-  "ulice",
-  "cislo_cp",
-  "cislo_co",
-  "misto",
-  "psc",
-  "ulice_ds",
-  "telefon",
-  "email",
-  "videno_at",
+const SLOUPCE_ORGANIZACE: Sloupec[] = [
+  { nazev: "cislo_subjektu", typ: "int" },
+  { nazev: "reference_subjektu", typ: "nvarchar(50)" },
+  { nazev: "nazev_subjektu", typ: "nvarchar(255)" },
+  { nazev: "ico", typ: "nvarchar(20)" },
+  { nazev: "dic", typ: "nvarchar(30)" },
+  { nazev: "ulice", typ: "nvarchar(255)" },
+  { nazev: "cislo_cp", typ: "nvarchar(20)" },
+  { nazev: "cislo_co", typ: "nvarchar(20)" },
+  { nazev: "misto", typ: "nvarchar(255)" },
+  { nazev: "psc", typ: "nvarchar(20)" },
+  { nazev: "ulice_ds", typ: "nvarchar(255)" },
+  { nazev: "telefon", typ: "nvarchar(60)" },
+  { nazev: "email", typ: "nvarchar(255)" },
+  { nazev: "videno_at", typ: "datetime2" },
 ];
 
-const SLOUPCE_MODELY = [
-  "cislo_subjektu",
-  "reference_subjektu",
-  "nazev_subjektu",
-  "serie",
-  "nazev_dlouhy",
-  "palivo",
-  "motor",
-  "videno_at",
+const SLOUPCE_MODELY: Sloupec[] = [
+  { nazev: "cislo_subjektu", typ: "int" },
+  { nazev: "reference_subjektu", typ: "nvarchar(50)" },
+  { nazev: "nazev_subjektu", typ: "nvarchar(255)" },
+  { nazev: "serie", typ: "nvarchar(100)" },
+  { nazev: "nazev_dlouhy", typ: "nvarchar(255)" },
+  { nazev: "palivo", typ: "nvarchar(100)" },
+  { nazev: "motor", typ: "nvarchar(255)" },
+  { nazev: "videno_at", typ: "datetime2" },
 ];
 
-const SLOUPCE_KONTAKTY = [
-  "cislo_subjektu",
-  "jmeno",
-  "prijmeni",
-  "ulice_domu",
-  "misto_domu",
-  "psc_domu",
-  "email",
-  "telefon_mobil",
-  "videno_at",
+const SLOUPCE_KONTAKTY: Sloupec[] = [
+  { nazev: "cislo_subjektu", typ: "int" },
+  { nazev: "jmeno", typ: "nvarchar(255)" },
+  { nazev: "prijmeni", typ: "nvarchar(255)" },
+  { nazev: "ulice_domu", typ: "nvarchar(255)" },
+  { nazev: "misto_domu", typ: "nvarchar(255)" },
+  { nazev: "psc_domu", typ: "nvarchar(20)" },
+  { nazev: "email", typ: "nvarchar(255)" },
+  { nazev: "telefon_mobil", typ: "nvarchar(60)" },
+  { nazev: "videno_at", typ: "datetime2" },
 ];
 
 function radekVozidla(v: VozidloZHeliosu, ted: Date): Radek {
@@ -126,8 +132,8 @@ function radekOrganizace(o: OrganizaceZHeliosu, ted: Date): Radek {
     ico: text(o.ico),
     dic: text(o.dic),
     ulice: text(o.ulice),
-    cislo_cp: text(o.cislo_cp === null ? null : String(o.cislo_cp)),
-    cislo_co: text(o.cislo_co === null ? null : String(o.cislo_co)),
+    cislo_cp: text(o.cislo_cp),
+    cislo_co: text(o.cislo_co),
     misto: text(o.misto),
     psc: text(o.psc),
     ulice_ds: text(o.ulice_ds),

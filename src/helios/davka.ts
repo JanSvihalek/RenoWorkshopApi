@@ -25,6 +25,17 @@ const LIMIT_PARAMETRU = 2000;
 export type Radek = Record<string, string | number | Date | null>;
 
 /**
+ * Sloupec cílové tabulky i s typem. Typ musí odpovídat tabulce
+ * v docs/sql/zrcadla-vozidel.sql.
+ *
+ * Bez typu to nejde: SQL Server u `VALUES` odvozuje typ sloupce z hodnot
+ * v dávce. Když má celá dávka ve sloupci jen prázdné hodnoty (vozidla bez
+ * data prodeje), vyjde mu `int` - a `int` do `datetime2` převést nedovolí,
+ * ani když je hodnota prázdná. Na tom spadlo první naplnění.
+ */
+export type Sloupec = { nazev: string; typ: string };
+
+/**
  * Vloží nebo aktualizuje řádky podle klíče. Nic nemaže.
  *
  * Názvy tabulky a sloupců se do příkazu vkládají přímo, ne jako parametry -
@@ -34,7 +45,7 @@ export type Radek = Record<string, string | number | Date | null>;
 export async function ulozDavkove(
   tabulka: string,
   klic: string,
-  sloupce: string[],
+  sloupce: Sloupec[],
   radky: Radek[],
 ): Promise<number> {
   for (const prikaz of sestavDavky(tabulka, klic, sloupce, radky)) {
@@ -64,23 +75,33 @@ export function radkuVDavce(pocetSloupcu: number): number {
 export function sestavDavky(
   tabulka: string,
   klic: string,
-  sloupce: string[],
+  sloupce: Sloupec[],
   radky: Radek[],
 ): Prisma.Sql[] {
   if (radky.length === 0) return [];
 
   const vDavce = radkuVDavce(sloupce.length);
+  const nazvy = sloupce.map((s) => s.nazev);
 
   const cil = Prisma.raw(`[dbo].[${tabulka}]`);
   const klicSloupec = Prisma.raw(`[${klic}]`);
-  const seznamSloupcu = Prisma.raw(sloupce.map((s) => `[${s}]`).join(", "));
-  const vlozeni = Prisma.raw(sloupce.map((s) => `zdroj.[${s}]`).join(", "));
+  const seznamSloupcu = Prisma.raw(nazvy.map((s) => `[${s}]`).join(", "));
+  const vlozeni = Prisma.raw(nazvy.map((s) => `zdroj.[${s}]`).join(", "));
   const nastaveni = Prisma.raw(
-    sloupce
+    nazvy
       .filter((s) => s !== klic)
       .map((s) => `cil.[${s}] = zdroj.[${s}]`)
       .join(", "),
   );
+
+  // Prázdná hodnota jde jako typovaný NULL přímo v textu, ne jako parametr -
+  // viz komentář u typu `Sloupec`. Vyplněná hodnota zůstává parametrem.
+  const hodnota = (radek: Radek, sloupec: Sloupec) => {
+    const v = radek[sloupec.nazev];
+    return v === null || v === undefined
+      ? Prisma.raw(`cast(null as ${sloupec.typ})`)
+      : Prisma.sql`${v}`;
+  };
 
   const prikazy: Prisma.Sql[] = [];
 
@@ -89,7 +110,7 @@ export function sestavDavky(
     const hodnoty = Prisma.join(
       cast.map(
         (radek) =>
-          Prisma.sql`(${Prisma.join(sloupce.map((s) => radek[s] ?? null))})`,
+          Prisma.sql`(${Prisma.join(sloupce.map((s) => hodnota(radek, s)))})`,
       ),
     );
 

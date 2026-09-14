@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { radkuVDavce, sestavDavky, type Radek } from "../src/helios/davka.js";
+import {
+  radkuVDavce,
+  sestavDavky,
+  type Radek,
+  type Sloupec,
+} from "../src/helios/davka.js";
 
-const SLOUPCE = ["cislo_subjektu", "nazev_subjektu", "ico", "videno_at"];
+const SLOUPCE: Sloupec[] = [
+  { nazev: "cislo_subjektu", typ: "int" },
+  { nazev: "nazev_subjektu", typ: "nvarchar(255)" },
+  { nazev: "ico", typ: "nvarchar(20)" },
+  { nazev: "videno_at", typ: "datetime2" },
+];
 
 function radky(pocet: number): Radek[] {
   const ted = new Date("2026-09-14T03:00:00");
@@ -23,11 +33,14 @@ describe("dávkový zápis zrcadel", () => {
 
   it("žádný příkaz nepřekročí limit parametrů SQL Serveru", () => {
     // Skutečný počet organizací v Heliosu, 14 sloupců jako helios_organizace.
-    const sloupce = Array.from({ length: 14 }, (_, i) =>
-      i === 0 ? "cislo_subjektu" : `sloupec_${i}`,
-    );
+    const sloupce: Sloupec[] = Array.from({ length: 14 }, (_, i) => ({
+      nazev: i === 0 ? "cislo_subjektu" : `sloupec_${i}`,
+      typ: i === 0 ? "int" : "nvarchar(255)",
+    }));
     const data: Radek[] = Array.from({ length: 61201 }, (_, i) =>
-      Object.fromEntries(sloupce.map((s) => [s, s === "cislo_subjektu" ? i : "x"])),
+      Object.fromEntries(
+        sloupce.map((s) => [s.nazev, s.nazev === "cislo_subjektu" ? i : "x"]),
+      ),
     );
 
     const prikazy = sestavDavky("helios_organizace", "cislo_subjektu", sloupce, data);
@@ -70,7 +83,35 @@ describe("dávkový zápis zrcadel", () => {
 
     expect(prikaz!.sql).not.toContain("O'Brien");
     expect(prikaz!.values).toContain("O'Brien s.r.o.; drop table helios_vozidla");
-    // Nevyplněné pole je null, ne vynechané - jinak by se posunuly sloupce.
-    expect(prikaz!.values).toHaveLength(SLOUPCE.length);
+  });
+
+  it("prázdná hodnota má typ cílového sloupce, ne int", () => {
+    // Na tomhle spadlo první naplnění: dávka vozidel, z nichž žádné nemělo
+    // datum prodeje. SQL Server z hodnot odvodil int a do datetime2 ho
+    // převést odmítl ("Operand type clash: int is incompatible with datetime2").
+    const sloupce: Sloupec[] = [
+      { nazev: "cislo_subjektu", typ: "int" },
+      { nazev: "prodej_datum", typ: "datetime2" },
+    ];
+    const data: Radek[] = [
+      { cislo_subjektu: 1, prodej_datum: null },
+      { cislo_subjektu: 2, prodej_datum: null },
+    ];
+
+    const [prikaz] = sestavDavky("helios_vozidla", "cislo_subjektu", sloupce, data);
+
+    expect(prikaz!.sql).toContain("(?,cast(null as datetime2))");
+    // Prázdné hodnoty nejsou parametry, jen klíče.
+    expect(prikaz!.values).toEqual([1, 2]);
+  });
+
+  it("chybějící sloupec v řádku je taky typovaný null, ne posun sloupců", () => {
+    const [prikaz] = sestavDavky("helios_organizace", "cislo_subjektu", SLOUPCE, [
+      { cislo_subjektu: 7, nazev_subjektu: "Firma", videno_at: null },
+    ]);
+
+    expect(prikaz!.sql).toContain(
+      "(?,?,cast(null as nvarchar(20)),cast(null as datetime2))",
+    );
   });
 });
