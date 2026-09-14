@@ -12,6 +12,7 @@
     "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "zrcadla": "node dist/nastroje/nacti-zrcadla.js",
+    "historie": "node dist/nastroje/nacti-historii.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",

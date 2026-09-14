@@ -144,12 +144,11 @@ se lidé střídají.
 Jeden běh vypadá takhle:
 
 1. Zapíše řádek do `synchronizace` (začátek běhu).
-2. Přečte pohled `v_renoworkshop_zakazky`. Dotaz trvá kolem 1,5 vteřiny.
-3. Zahodí zakázky ve stavu `3 Ukončeno`, `50 Dokončeno`, `10 Nerealizuje se`.
-   Filtruje se tady i v pohledu. Když pohled ukončené pustí (dnes ano,
-   podmínka je jen `stav_real <> 10`), přenese se přes linkovaný server
-   kolem 70 000 řádků při každém běhu místo zhruba 1 500 - v databázi se
-   nic nezkazí, ale je to zbytečná zátěž. Viz poznámku v `dotazy.sql`.
+2. Přečte pohled `v_renoworkshop_zakazky` - jen rozdělané zakázky, kolem
+   1 500 řádků.
+3. Pro jistotu zahodí zakázky ve stavu `3 Ukončeno`, `50 Dokončeno`,
+   `10 Nerealizuje se`, kdyby je pohled někdy pustil. Ukončené zakázky
+   tahá zvlášť noční historie (viz níže).
 4. Zbytek zapíše do `helios_*`. Zakázku, kterou vidí poprvé, založí a nastaví
    jí **výchozí dílenský stav odvozený z Heliosu** (`42 Nenaskladněno` → čeká
    na díly, `30 Zpracováváno` → v opravě, `36 K fakturaci` → připraveno).
@@ -189,6 +188,39 @@ Plní se dvěma cestami:
 Zapisuje se dávkově přes `MERGE` (`src/helios/davka.ts`), ne po řádcích —
 po jednom by zápis 190 000 řádků trval řádově déle než čtení z Heliosu.
 Ze zrcadel se nikdy nic nemaže.
+
+### Historie zakázek
+
+Ukončené zakázky (`3 Ukončeno`, `50 Dokončeno`) čte zvlášť pohled
+`v_renoworkshop_zakazky_historie`, kolem 70 000 řádků. Kvůli vyhledávání:
+k vozidlu se mají ukázat všechny jeho zakázky napříč lety, ne jen ty,
+které jsme stihli zachytit rozdělané.
+
+Běží v noci hned po vozidlech a zákaznících, zapisuje se do stejné tabulky
+`helios_zakazky` a stejně dávkově. Oba běhy si práci dělí:
+
+| | Pětiminutový | Noční historie |
+|---|---|---|
+| Které zakázky | rozdělané | ukončené |
+| `je_aktivni`, `uzavrena_at` | **jen on** přepíná | u existující zakázky nesahá |
+| Nová zakázka | aktivní | rovnou neaktivní |
+
+Kdyby noční běh přepínal aktivitu, mohl by schovat zakázku, která se
+mezitím vrátila na dílnu (reklamace), nebo přepsat skutečné datum uzavření.
+
+Doplňování vozidel a zákazníků po pětiminutovém běhu se historie netýká -
+běží jen pro rozdělané zakázky. Část starých zakázek ukazuje na vozidla,
+která už v Heliosu nejsou, a doptávalo by se na ně pořád dokola.
+
+Text delší než sloupec se při dávkovém zápisu zkrátí, místo aby shodil
+celou dávku.
+
+Zavedení (jednou):
+
+1. `docs/sql/pohled-historie.sql`
+2. `npm run build`, `npm run historie`
+3. `docs/sql/pohled-zakazky-jen-rozdelane.sql` - až potom, ať ukončené
+   zakázky nechybí ani chvíli
 
 **První naplnění** po založení tabulek:
 

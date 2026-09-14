@@ -62,6 +62,17 @@ export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {
 }
 
 /**
+ * Ukončené zakázky z pohledu `v_renoworkshop_zakazky_historie`. Stejné
+ * sloupce jako rozdělané, jen jiný filtr stavu - kolem 70 000 řádků,
+ * proto se čtou jednou za noc, ne každých pět minut.
+ */
+export async function nactiHistoriiZakazek(): Promise<ZakazkaZHeliosu[]> {
+  return prisma.$queryRaw<ZakazkaZHeliosu[]>`
+    select * from dbo.v_renoworkshop_zakazky_historie
+  `;
+}
+
+/**
  * Zákazník z pohledu `v_renoworkshop_organizace`. Jména sloupců jsou
  * z Heliosu, ne naše - pohled je jen propouští.
  */

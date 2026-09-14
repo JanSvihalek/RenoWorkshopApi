@@ -20,7 +20,9 @@ if object_id('dbo.v_renoworkshop_zakazky') is not null
     drop view dbo.v_renoworkshop_zakazky;
 go
 
--- Srovnáno podle serveru 14. 9. 2026 (Script View as z RENDCAPPu).
+-- Srovnáno podle serveru 14. 9. 2026 (Script View as z RENDCAPPu),
+-- s filtrem jen na rozdělané zakázky z docs/sql/pohled-zakazky-jen-rozdelane.sql.
+-- Ukončené tahá zvlášť pohled historie níže.
 create view dbo.v_renoworkshop_zakazky as
 SELECT hlv.reference_subjektu AS c_zakazky,
        hlv.vin1               AS vin,
@@ -74,8 +76,16 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.subjekty AS tech
             ON hlv.zodpovida = tech.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
-       AND hlv.stav_real <> 10;
+       AND hlv.stav_real NOT IN (3, 10, 50);
 go
+
+-- Historie: tytéž sloupce, jen ukončené zakázky (3 Ukončeno, 50 Dokončeno).
+-- Kolem 70 000 řádků, proto ji čte noční běh, ne pětiminutová synchronizace.
+-- Když se změní sloupce v pohledu nahoře, musí se změnit i tady - oba se
+-- zapisují do stejné tabulky helios_zakazky. Plný text je
+-- v docs/sql/pohled-historie.sql, liší se jen posledním řádkem WHERE:
+--
+--   AND hlv.stav_real IN (3, 50);
 
 -- =====================================================================
 -- Zrcadla: vozidla, zákazníci, modely, kontakty
@@ -139,24 +149,6 @@ FROM   RAS_HEN.RNC_ostra.lcs.kontaktni_osoby;
 go
 
 -- ---------------------------------------------------------------------
--- Pozor na rozsah: pohled vrací i ukončené zakázky
--- ---------------------------------------------------------------------
---
--- Podmínka je jen `stav_real <> 10` (Nerealizuje se), takže ve výsledku
--- jsou i stavy 3 Ukončeno a 50 Dokončeno. K srpnu 2026 to znamená kolem
--- 70 000 řádků místo zhruba 1 500.
---
--- Synchronizace si ukončené odfiltruje sama, takže se v databázi nic
--- nezkazí - ale těch 70 000 řádků poteče přes linkovaný server při
--- **každém běhu**, tedy každých pět minut. Je to zbytečná zátěž Heliosu
--- i sítě.
---
--- Buď se vrátí filtr:
---   AND hlv.stav_real NOT IN (3, 10, 50)
--- nebo, když je záměr natáhnout do archivu i historii, se to udělá
--- jednorázově a pravidelná synchronizace zůstane u aktivních zakázek.
-
--- ---------------------------------------------------------------------
 -- Kdyby byly pohledy přes linkovaný server pomalé
 -- ---------------------------------------------------------------------
 --
@@ -214,6 +206,6 @@ go
 --            LEFT OUTER JOIN RNC_ostra.lcs.subjekty AS tech
 --                 ON hlv.zodpovida = tech.cislo_subjektu
 --     WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
---            AND hlv.stav_real <> 10
+--            AND hlv.stav_real NOT IN (3, 10, 50)
 -- ');
 -- go

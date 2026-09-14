@@ -14,6 +14,7 @@ import {
   type VozidloZHeliosu,
 } from "./cteni.js";
 import { ulozDavkove, type Radek, type Sloupec } from "./davka.js";
+import { cislo, text } from "./prevod.js";
 
 /**
  * Zrcadla vozidel, zákazníků, modelů a kontaktů.
@@ -31,25 +32,6 @@ import { ulozDavkove, type Radek, type Sloupec } from "./davka.js";
  * Zrcadla se nikdy nemažou. Zákazník zrušený v Heliosu má zůstat čitelný
  * u svých starých zakázek.
  */
-
-/**
- * Text z Heliosu. Prázdný řetězec bereme jako nevyplněno.
- *
- * Přijímá i číslo: PSČ, IČO nebo číslo popisné bývají v LCS podle tabulky
- * jednou text a jednou číslo, a `.trim()` na čísle by shodilo celou dávku.
- */
-function text(hodnota: string | number | null | undefined): string | null {
-  if (hodnota === null || hodnota === undefined) return null;
-  const orezane = String(hodnota).trim();
-  return orezane ? orezane : null;
-}
-
-/** Celé číslo, nebo nic. Nečekaná hodnota nesmí shodit celou dávku. */
-function cislo(hodnota: number | string | null | undefined): number | null {
-  if (hodnota === null || hodnota === undefined || hodnota === "") return null;
-  const prevedene = Math.round(Number(hodnota));
-  return Number.isFinite(prevedene) ? prevedene : null;
-}
 
 const KLIC = "cislo_subjektu";
 
@@ -252,6 +234,12 @@ function klice(radky: Klic[]): number[] {
  *
  * Většinu běhů nenajde nic a skončí čtyřmi rychlými dotazy do naší
  * databáze, Heliosu se vůbec nedotkne.
+ *
+ * Jen pro **rozdělané** zakázky. Historie sahá roky zpátky a část odkazů
+ * v ní vede na vozidla nebo zákazníky, kteří už v Heliosu nejsou. Ty by se
+ * nikdy nenašly a doptávalo by se na ně každých pět minut pořád dokola.
+ * Historické zakázky pokryje noční plný běh - co v něm není, v Heliosu
+ * prostě neexistuje.
  */
 export async function doplnChybejiciZrcadla(): Promise<PocetyZrcadel> {
   const ted = new Date();
@@ -260,7 +248,8 @@ export async function doplnChybejiciZrcadla(): Promise<PocetyZrcadel> {
     select distinct z.vozidlo_id as id
     from helios_zakazky z
     left join helios_vozidla v on v.cislo_subjektu = z.vozidlo_id
-    where z.vozidlo_id is not null and v.cislo_subjektu is null
+    where z.je_aktivni = 1
+      and z.vozidlo_id is not null and v.cislo_subjektu is null
   `);
   const vozidla = await ulozDavkove(
     "helios_vozidla",
@@ -276,9 +265,13 @@ export async function doplnChybejiciZrcadla(): Promise<PocetyZrcadel> {
   const idOrganizaci = klice(await prisma.$queryRaw<Klic[]>`
     select distinct s.id
     from (
-      select organizace_id as id from helios_zakazky where organizace_id is not null
+      select organizace_id as id from helios_zakazky
+      where je_aktivni = 1 and organizace_id is not null
       union
-      select majitel as id from helios_vozidla where majitel is not null
+      select v.majitel as id
+      from helios_vozidla v
+      join helios_zakazky z on z.vozidlo_id = v.cislo_subjektu and z.je_aktivni = 1
+      where v.majitel is not null
     ) s
     left join helios_organizace o on o.cislo_subjektu = s.id
     where o.cislo_subjektu is null
@@ -295,6 +288,7 @@ export async function doplnChybejiciZrcadla(): Promise<PocetyZrcadel> {
   const idModelu = klice(await prisma.$queryRaw<Klic[]>`
     select distinct v.znackamodel as id
     from helios_vozidla v
+    join helios_zakazky z on z.vozidlo_id = v.cislo_subjektu and z.je_aktivni = 1
     left join helios_modely m on m.cislo_subjektu = v.znackamodel
     where v.znackamodel is not null and m.cislo_subjektu is null
   `);
@@ -310,6 +304,7 @@ export async function doplnChybejiciZrcadla(): Promise<PocetyZrcadel> {
   const idKontaktu = klice(await prisma.$queryRaw<Klic[]>`
     select distinct v.kontaktni_osoba as id
     from helios_vozidla v
+    join helios_zakazky z on z.vozidlo_id = v.cislo_subjektu and z.je_aktivni = 1
     left join helios_kontakty k on k.cislo_subjektu = v.kontaktni_osoba
     where v.kontaktni_osoba is not null and k.cislo_subjektu is null
   `);

@@ -33,7 +33,25 @@ export type Radek = Record<string, string | number | Date | null>;
  * data prodeje), vyjde mu `int` - a `int` do `datetime2` převést nedovolí,
  * ani když je hodnota prázdná. Na tom spadlo první naplnění.
  */
-export type Sloupec = { nazev: string; typ: string };
+export type Sloupec = {
+  nazev: string;
+  typ: string;
+
+  /**
+   * Zapíše se jen při založení řádku, existující řádek si hodnotu nechá.
+   *
+   * Pro sloupce, které patří jinému zapisovateli. Noční historie zakázek
+   * nesmí přepsat `je_aktivni` nebo `stani` zakázce, kterou mezitím řídí
+   * pětiminutová synchronizace nebo lidé na dílně.
+   */
+  jenPriVlozeni?: boolean;
+};
+
+/** Šířka textového sloupce z typu (`nvarchar(20)` -> 20), jinak nic. */
+function sirka(typ: string): number | null {
+  const shoda = /^nvarchar\((\d+)\)$/i.exec(typ.trim());
+  return shoda ? Number(shoda[1]) : null;
+}
 
 /**
  * Vloží nebo aktualizuje řádky podle klíče. Nic nemaže.
@@ -88,19 +106,31 @@ export function sestavDavky(
   const seznamSloupcu = Prisma.raw(nazvy.map((s) => `[${s}]`).join(", "));
   const vlozeni = Prisma.raw(nazvy.map((s) => `zdroj.[${s}]`).join(", "));
   const nastaveni = Prisma.raw(
-    nazvy
-      .filter((s) => s !== klic)
-      .map((s) => `cil.[${s}] = zdroj.[${s}]`)
+    sloupce
+      .filter((s) => s.nazev !== klic && !s.jenPriVlozeni)
+      .map((s) => `cil.[${s.nazev}] = zdroj.[${s.nazev}]`)
       .join(", "),
   );
 
-  // Prázdná hodnota jde jako typovaný NULL přímo v textu, ne jako parametr -
-  // viz komentář u typu `Sloupec`. Vyplněná hodnota zůstává parametrem.
   const hodnota = (radek: Radek, sloupec: Sloupec) => {
     const v = radek[sloupec.nazev];
-    return v === null || v === undefined
-      ? Prisma.raw(`cast(null as ${sloupec.typ})`)
-      : Prisma.sql`${v}`;
+
+    // Prázdná hodnota jde jako typovaný NULL přímo v textu, ne jako
+    // parametr - viz komentář u typu `Sloupec`.
+    if (v === null || v === undefined) {
+      return Prisma.raw(`cast(null as ${sloupec.typ})`);
+    }
+
+    // Delší text se zkrátí na šířku sloupce. Jinak by SQL Server odmítl
+    // celou dávku ("String or binary data would be truncated") kvůli
+    // jedné přepsané poznámce v názvu - u 70 000 historických zakázek
+    // se taková najde skoro jistě.
+    const max = sirka(sloupec.typ);
+    if (typeof v === "string" && max !== null && v.length > max) {
+      return Prisma.sql`${v.slice(0, max)}`;
+    }
+
+    return Prisma.sql`${v}`;
   };
 
   const prikazy: Prisma.Sql[] = [];

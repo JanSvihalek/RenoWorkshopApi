@@ -1,6 +1,7 @@
 import { prisma } from "../db.js";
 import { jeUkoncena } from "../domain/stav.js";
 import { nactiZakazky, type ZakazkaZHeliosu } from "./cteni.js";
+import { cislo, text } from "./prevod.js";
 import { doplnChybejiciZrcadla } from "./zrcadla.js";
 
 /**
@@ -13,18 +14,13 @@ import { doplnChybejiciZrcadla } from "./zrcadla.js";
  * v Heliosu, aby seznam nezačínal se vším na „Přijato". Od té chvíle
  * rozhoduje mechanik a Helios do stavu nemluví.
  */
-/** Prázdný řetězec z Heliosu bereme jako nevyplněno. */
-function text(hodnota: string | null | undefined): string | null {
-  const orezane = hodnota?.trim();
-  return orezane ? orezane : null;
-}
 
 /**
  * Číslo řady zakázky. Do naší tabulky jde jako text, i když je v Heliosu
  * číselné - zachází se s ním stejně jako s kódem útvaru a slouží jen jako
  * klíč do `typy_zakazek`.
  */
-function radaReference(z: ZakazkaZHeliosu): string | null {
+export function radaReference(z: ZakazkaZHeliosu): string | null {
   const kod = z.zakazka_rada;
   if (kod === null || kod === undefined) return null;
   const text = String(kod).trim();
@@ -40,17 +36,6 @@ function radaReference(z: ZakazkaZHeliosu): string | null {
 /** Musí odpovídat NVarChar(50) u `rada_reference` v prisma/schema.prisma. */
 const DELKA_RADY = 50;
 
-/**
- * `cislo_subjektu` z Heliosu jako číslo. Nečekaná hodnota se zahodí,
- * ne vyhodí: zakázka pak jen nemá odkaz na vozidlo, což je pořád lepší
- * než spadlá synchronizace celé dílny.
- */
-function cislo(hodnota: number | string | null | undefined): number | null {
-  if (hodnota === null || hodnota === undefined || hodnota === "") return null;
-  const prevedene = Number(hodnota);
-  return Number.isInteger(prevedene) ? prevedene : null;
-}
-
 export async function synchronizuj(): Promise<{ pocet: number }> {
   const beh = await prisma.synchronizace.create({
     data: { zacatekAt: new Date() },
@@ -60,8 +45,10 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
     const zakazky = await nactiZakazky();
     const ted = new Date();
 
-    // Pohled v_renoworkshop_zakazky vrací jen rozdělané zakázky; tahle
-    // pojistka je pro případ, že by se filtr v pohledu někdy změnil.
+    // Pohled v_renoworkshop_zakazky má vracet jen rozdělané zakázky;
+    // ukončené tahá zvlášť noční historie (historie.ts). Tahle pojistka je
+    // pro případ, že by se filtr v pohledu změnil - ukončenou zakázku
+    // nesmí pětiminutový běh označit jako aktivní.
     const aktivni = zakazky.filter((z) => !jeUkoncena(z.stav_real));
 
     for (const z of aktivni) {
