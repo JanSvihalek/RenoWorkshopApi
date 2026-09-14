@@ -4,9 +4,12 @@
 -- a `npm run historie`). Dřív to nic nerozbije, jen by ukončené zakázky
 -- chyběly o to déle.
 --
--- Mění jedinou podmínku: `stav_real <> 10` na `NOT IN (3, 10, 50)`.
--- Pětiminutová synchronizace pak čte kolem 1 500 řádků místo 70 000 -
--- ukončené si stejně zahazovala a nově je tahá noční historie.
+-- Mění jedinou podmínku: `stav_real <> 10` na `NOT IN (3, 10)`.
+-- Pětiminutová synchronizace pak nečte desítky tisíc ukončených zakázek,
+-- které si stejně zahazovala - nově je tahá noční historie.
+--
+-- 50 Dokončeno zůstává mezi rozdělanými: pro dílnu to neznamená, že je
+-- zakázka kompletně hotová.
 --
 -- ALTER VIEW, ne drop + create: pohled se vymění za běhu a synchronizace
 -- mezitím nenarazí na chybějící objekt.
@@ -54,9 +57,10 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.subjekty AS tech
             ON hlv.zodpovida = tech.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
-       AND hlv.stav_real NOT IN (3, 10, 50);
+       AND hlv.stav_real NOT IN (3, 10);
 GO
 
--- Kontrola: čekáme kolem 1 500 řádků, a zodpovědná osoba vyplněná.
+-- Kontrola: čekáme řádově tisíce řádků, ne desítky tisíc, a vyplněnou
+-- zodpovědnou osobu.
 -- SELECT COUNT(*) FROM dbo.v_renoworkshop_zakazky;
 -- SELECT TOP 5 c_zakazky, vozidlo_id, zodpovida FROM dbo.v_renoworkshop_zakazky;

@@ -123,7 +123,7 @@ export function sestavDavky(
 
     // Delší text se zkrátí na šířku sloupce. Jinak by SQL Server odmítl
     // celou dávku ("String or binary data would be truncated") kvůli
-    // jedné přepsané poznámce v názvu - u 70 000 historických zakázek
+    // jedné přepsané poznámce v názvu - u desítek tisíc historických zakázek
     // se taková najde skoro jistě.
     const max = sirka(sloupec.typ);
     if (typeof v === "string" && max !== null && v.length > max) {

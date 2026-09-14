@@ -10,7 +10,7 @@ import { radaReference } from "./sync.js";
  * Kvůli vyhledávání podle SPZ - k vozidlu se mají ukázat všechny jeho
  * zakázky napříč lety, ne jen ty, které jsme stihli zachytit rozdělané.
  *
- * Běží jednou za noc spolu se zrcadly. Ukončených zakázek je kolem 70 000,
+ * Běží jednou za noc spolu se zrcadly. Ukončených zakázek jsou desítky tisíc,
  * pětiminutová synchronizace proto tahá jen rozdělané a o ukončené se
  * stará tahle.
  *

@@ -55,8 +55,11 @@ describe("zkrácení názvu útvaru", () => {
 describe("stavy z Heliosu", () => {
   it("ukončené zakázky se přestanou zobrazovat", () => {
     expect(jeUkoncena(3)).toBe(true); // Ukončeno
-    expect(jeUkoncena(50)).toBe(true); // Dokončeno
     expect(jeUkoncena(10)).toBe(true); // Nerealizuje se
+  });
+
+  it("Dokončeno není ukončeno - na zakázce se pořád pracuje nebo čeká", () => {
+    expect(jeUkoncena(50)).toBe(false);
   });
 
   it("K fakturaci na dílně zůstává, vůz ještě nikdo neodvezl", () => {

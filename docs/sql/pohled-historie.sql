@@ -4,8 +4,11 @@
 -- Jde pustit opakovaně - pohled se pokaždé založí znovu.
 --
 -- Stejné sloupce jako v_renoworkshop_zakazky, jen jiný filtr: stav
--- 3 Ukončeno a 50 Dokončeno. Čte ho noční běh a ruční `npm run historie`,
--- ne pětiminutová synchronizace - ukončených zakázek je kolem 70 000.
+-- 3 Ukončeno. Čte ho noční běh a ruční `npm run historie`, ne pětiminutová
+-- synchronizace - ukončených zakázek jsou desítky tisíc.
+--
+-- 50 Dokončeno sem schválně nepatří: pro dílnu to neznamená, že je
+-- zakázka kompletně hotová. Ta zůstává mezi rozdělanými.
 --
 -- Když se změní sloupce v zakázkovém pohledu, musí se změnit i tady.
 -- Synchronizace oba čte do stejné tabulky.
@@ -55,8 +58,8 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.subjekty AS tech
             ON hlv.zodpovida = tech.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
-       AND hlv.stav_real IN (3, 50);
+       AND hlv.stav_real = 3;
 GO
 
--- Kontrola: kolik ukončených zakázek pohled vrací (čekáme kolem 70 000).
+-- Kontrola: kolik ukončených zakázek pohled vrací (desítky tisíc).
 -- SELECT COUNT(*) FROM dbo.v_renoworkshop_zakazky_historie;

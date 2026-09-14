@@ -144,10 +144,11 @@ se lidé střídají.
 Jeden běh vypadá takhle:
 
 1. Zapíše řádek do `synchronizace` (začátek běhu).
-2. Přečte pohled `v_renoworkshop_zakazky` - jen rozdělané zakázky, kolem
-   1 500 řádků.
-3. Pro jistotu zahodí zakázky ve stavu `3 Ukončeno`, `50 Dokončeno`,
-   `10 Nerealizuje se`, kdyby je pohled někdy pustil. Ukončené zakázky
+2. Přečte pohled `v_renoworkshop_zakazky` - jen rozdělané zakázky, bez
+   desítek tisíc ukončených.
+3. Pro jistotu zahodí zakázky ve stavu `3 Ukončeno` a `10 Nerealizuje se`,
+   kdyby je pohled někdy pustil. `50 Dokončeno` mezi ukončené nepatří -
+   pro dílnu to neznamená, že je zakázka kompletně hotová. Ukončené zakázky
    tahá zvlášť noční historie (viz níže).
 4. Zbytek zapíše do `helios_*`. Zakázku, kterou vidí poprvé, založí a nastaví
    jí **výchozí dílenský stav odvozený z Heliosu** (`42 Nenaskladněno` → čeká
@@ -191,8 +192,9 @@ Ze zrcadel se nikdy nic nemaže.
 
 ### Historie zakázek
 
-Ukončené zakázky (`3 Ukončeno`, `50 Dokončeno`) čte zvlášť pohled
-`v_renoworkshop_zakazky_historie`, kolem 70 000 řádků. Kvůli vyhledávání:
+Ukončené zakázky (`3 Ukončeno`) čte zvlášť pohled
+`v_renoworkshop_zakazky_historie`, desítky tisíc řádků.
+`50 Dokončeno` mezi ně nepatří a zůstává v seznamu na dílně. Kvůli vyhledávání:
 k vozidlu se mají ukázat všechny jeho zakázky napříč lety, ne jen ty,
 které jsme stihli zachytit rozdělané.
 

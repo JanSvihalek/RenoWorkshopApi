@@ -76,16 +76,18 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.subjekty AS tech
             ON hlv.zodpovida = tech.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
-       AND hlv.stav_real NOT IN (3, 10, 50);
+       AND hlv.stav_real NOT IN (3, 10);
 go
 
--- Historie: tytéž sloupce, jen ukončené zakázky (3 Ukončeno, 50 Dokončeno).
--- Kolem 70 000 řádků, proto ji čte noční běh, ne pětiminutová synchronizace.
+-- Historie: tytéž sloupce, jen ukončené zakázky (3 Ukončeno). Desítky tisíc
+-- řádků, proto ji čte noční běh, ne pětiminutová synchronizace.
+-- 50 Dokončeno patří mezi rozdělané - pro dílnu to není kompletně hotová
+-- zakázka.
 -- Když se změní sloupce v pohledu nahoře, musí se změnit i tady - oba se
 -- zapisují do stejné tabulky helios_zakazky. Plný text je
 -- v docs/sql/pohled-historie.sql, liší se jen posledním řádkem WHERE:
 --
---   AND hlv.stav_real IN (3, 50);
+--   AND hlv.stav_real = 3;
 
 -- =====================================================================
 -- Zrcadla: vozidla, zákazníci, modely, kontakty
@@ -206,6 +208,6 @@ go
 --            LEFT OUTER JOIN RNC_ostra.lcs.subjekty AS tech
 --                 ON hlv.zodpovida = tech.cislo_subjektu
 --     WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
---            AND hlv.stav_real NOT IN (3, 10, 50)
+--            AND hlv.stav_real NOT IN (3, 10)
 -- ');
 -- go

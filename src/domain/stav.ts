@@ -41,10 +41,15 @@ export const STAVY_HELIOS: Record<number, string> = {
 /**
  * Stavy, po kterých vůz na dílně nestojí - zakázka se přestane zobrazovat.
  *
- * `K fakturaci` (36) tu schválně není: vůz bývá hotový, ale pořád na
- * pozemku, a poradce potřebuje vidět, že čeká na vyzvednutí.
+ * Ukončená je jen `Ukončeno` (3), k tomu `Nerealizuje se` (10), která se
+ * nikdy nerozjela.
+ *
+ * `Dokončeno` (50) tu schválně není: pro dílnu to neznamená, že je zakázka
+ * kompletně hotová, a pořád se na ní pracuje nebo čeká. Stejně tak
+ * `K fakturaci` (36): vůz bývá hotový, ale pořád na pozemku, a poradce
+ * potřebuje vidět, že čeká na vyzvednutí.
  */
-const UKONCENE = new Set([3, 10, 50]);
+const UKONCENE = new Set([3, 10]);
 
 export function jeUkoncena(stavReal: number | null | undefined): boolean {
   return stavReal != null && UKONCENE.has(stavReal);

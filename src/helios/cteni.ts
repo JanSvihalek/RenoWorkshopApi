@@ -63,7 +63,7 @@ export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {
 
 /**
  * Ukončené zakázky z pohledu `v_renoworkshop_zakazky_historie`. Stejné
- * sloupce jako rozdělané, jen jiný filtr stavu - kolem 70 000 řádků,
+ * sloupce jako rozdělané, jen jiný filtr stavu - desítky tisíc řádků,
  * proto se čtou jednou za noc, ne každých pět minut.
  */
 export async function nactiHistoriiZakazek(): Promise<ZakazkaZHeliosu[]> {
