@@ -227,6 +227,24 @@ Zavedení (jednou):
 První naplnění na RENDCAPPu (14. 9. 2026): **70 626 zakázek za 228 vteřin**.
 Celý noční běh (zrcadla + historie) tedy trvá kolem devíti minut.
 
+### Závady
+
+Závady (úkony) na zakázkách čte pohled `v_renoworkshop_zavady` do zrcadla
+`helios_zavady`. K zakázce se vážou přes `cislo_subjektu` hlavičky
+(`helios_zakazky.zakazka_id`), ne přes číslo zakázky - to se v Heliosu
+výjimečně opakuje.
+
+- **Každých pět minut** po zakázkách: závady **rozdělaných** zakázek. Co
+  u nich Helios přestal vracet, se **smaže** - dílna nemá opravovat, co už
+  na zakázce není. Selhání neshodí zápis zakázek.
+- **V noci** po historii: závady všech zakázek, kvůli starým zakázkám na
+  kartě vozidla. Nic nemaže. Ručně: `npm run zavady`.
+
+Aplikace je ukazuje v detailu zakázky jen ke čtení (`defects` v API).
+
+Zavedení: `docs/sql/zavady.sql`, pohled závad a `hlv.cislo_subjektu`
+v obou zakázkových pohledech, pak nasadit službu.
+
 **První naplnění** po založení tabulek:
 
 ```

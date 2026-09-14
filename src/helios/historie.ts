@@ -2,7 +2,7 @@ import { jeUkoncena } from "../domain/stav.js";
 import { nactiHistoriiZakazek, type ZakazkaZHeliosu } from "./cteni.js";
 import { ulozDavkove, type Radek, type Sloupec } from "./davka.js";
 import { cislo, text } from "./prevod.js";
-import { radaReference } from "./sync.js";
+import { idHlavicky, radaReference } from "./sync.js";
 
 /**
  * Historie zakázek: ukončené zakázky z Heliosu.
@@ -39,6 +39,7 @@ const SLOUPCE: Sloupec[] = [
   { nazev: "rada_reference", typ: "nvarchar(50)" },
   { nazev: "vozidlo_id", typ: "int" },
   { nazev: "organizace_id", typ: "int" },
+  { nazev: "zakazka_id", typ: "int" },
   { nazev: "zodpovida_kod", typ: "nvarchar(50)" },
   { nazev: "zodpovida", typ: "nvarchar(200)" },
   { nazev: "datum_prijeti", typ: "datetime2" },
@@ -67,6 +68,7 @@ export function radekHistorie(z: ZakazkaZHeliosu, ted: Date): Radek {
     rada_reference: radaReference(z),
     vozidlo_id: cislo(z.vozidlo_id),
     organizace_id: cislo(z.organizace_id),
+    zakazka_id: idHlavicky(z),
     zodpovida_kod: text(z.zodpovida_kod),
     zodpovida: text(z.zodpovida),
     datum_prijeti: z.datum_prijeti,

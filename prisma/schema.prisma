@@ -61,6 +61,11 @@ model HeliosZakazka {
   /// ale snímek stavu při přijetí - vůz může za dva roky změnit majitele
   /// i značku a stará zakázka má ukazovat, jak to bylo tehdy.
   vozidloId       Int?      @map("vozidlo_id")
+
+  /// `cislo_subjektu` hlavičky zakázky v Heliosu. Stabilní klíč, přes který
+  /// se k zakázce napojují závady (`helios_zavady.zakazka`). Číslo zakázky
+  /// (`cislo_zakazky`) na to nestačí - v Heliosu se výjimečně opakuje.
+  zakazkaId       Int?      @map("zakazka_id")
   organizaceId    Int?      @map("organizace_id")
 
   zodpovidaKod    String?   @map("zodpovida_kod") @db.NVarChar(50)
@@ -97,7 +102,34 @@ model HeliosZakazka {
   @@index([vin])
   // Historie vozu: všechny zakázky jednoho vozidla, od nejnovější.
   @@index([vozidloId, datumPrijeti])
+  // Napojení závad.
+  @@index([zakazkaId])
   @@map("helios_zakazky")
+}
+
+/// Závada (úkon) na zakázce z Heliosu. Zrcadlo `ino_srvszak_zavady`.
+///
+/// Na zakázku ukazuje přes `cislo_subjektu` hlavičky, ne přes číslo
+/// zakázky - to se v Heliosu výjimečně opakuje. Bez cizího klíče: závada
+/// k zakázce, která se ještě nedotáhla, nesmí shodit synchronizaci.
+///
+/// Na rozdíl od ostatních zrcadel se **maže**: závada odebraná v Heliosu
+/// z rozdělané zakázky má zmizet i v aplikaci, jinak by dílna opravovala,
+/// co už na zakázce není. Dílna k závadám nic nezapisuje, takže se nic
+/// neztratí.
+model HeliosZavada {
+  id Int @id @map("cislo_subjektu")
+
+  /// `cislo_subjektu` hlavičky zakázky - viz `HeliosZakazka.zakazkaId`.
+  zakazkaId Int? @map("zakazka")
+
+  reference String? @map("reference_subjektu") @db.NVarChar(50)
+  poznamka  String? @db.NVarChar(Max)
+
+  videnoAt DateTime @map("videno_at") @db.DateTime2
+
+  @@index([zakazkaId])
+  @@map("helios_zavady")
 }
 
 /// Značka a model z Heliosu. Zrcadlo číselníku `ino_znackamodel`.

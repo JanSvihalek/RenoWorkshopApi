@@ -2,6 +2,7 @@ import { prisma } from "../db.js";
 import { jeUkoncena } from "../domain/stav.js";
 import { nactiZakazky, type ZakazkaZHeliosu } from "./cteni.js";
 import { cislo, text } from "./prevod.js";
+import { synchronizujZavadyRozdelanych } from "./zavady.js";
 import { doplnChybejiciZrcadla } from "./zrcadla.js";
 
 /**
@@ -31,6 +32,14 @@ export function radaReference(z: ZakazkaZHeliosu): string | null {
   // zahodíme - zakázka pak nemá typ, což je pořád lepší než zaseknutá
   // dílna. Pohled sice pouští jen řady 8xx, ale filtr v něm se dá změnit.
   return text.length <= DELKA_RADY ? text : null;
+}
+
+/**
+ * `cislo_subjektu` hlavičky zakázky - klíč pro napojení závad. Pohled ho
+ * smí vracet jako `zakazka_id` i pod původním jménem `cislo_subjektu`.
+ */
+export function idHlavicky(z: ZakazkaZHeliosu): number | null {
+  return cislo(z.zakazka_id ?? z.cislo_subjektu);
 }
 
 /** Musí odpovídat NVarChar(50) u `rada_reference` v prisma/schema.prisma. */
@@ -66,6 +75,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           radaReference: radaReference(z),
           vozidloId: cislo(z.vozidlo_id),
           organizaceId: cislo(z.organizace_id),
+          zakazkaId: idHlavicky(z),
           zodpovidaKod: text(z.zodpovida_kod),
           zodpovida: text(z.zodpovida),
           datumPrijeti: z.datum_prijeti,
@@ -90,6 +100,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           radaReference: radaReference(z),
           vozidloId: cislo(z.vozidlo_id),
           organizaceId: cislo(z.organizace_id),
+          zakazkaId: idHlavicky(z),
           zodpovidaKod: text(z.zodpovida_kod),
           zodpovida: text(z.zodpovida),
           datumPrijeti: z.datum_prijeti,
@@ -121,6 +132,13 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
       await doplnChybejiciZrcadla();
     } catch (chyba) {
       console.error("Doplnění vozidel a zákazníků selhalo", chyba);
+    }
+
+    // Stejně tak závady: když se nedají načíst, zakázky už jsou uložené.
+    try {
+      await synchronizujZavadyRozdelanych();
+    } catch (chyba) {
+      console.error("Synchronizace závad selhala", chyba);
     }
 
     return { pocet: aktivni.length };

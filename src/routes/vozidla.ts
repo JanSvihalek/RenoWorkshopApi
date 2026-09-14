@@ -1,9 +1,8 @@
 import type { FastifyInstance } from "fastify";
 
 import { prisma } from "../db.js";
-import { nactiTypyZakazek } from "../domain/typy.js";
 import { celeJmeno, kodProHledani, uliceSCislem } from "../domain/vozidlo.js";
-import { doOdpovedi, sVazbami } from "./zakazky.js";
+import { odpovedi, sVazbami } from "./zakazky.js";
 
 /**
  * Vozidla - vyhledávání podle SPZ nebo VIN a karta vozidla.
@@ -115,7 +114,7 @@ export async function vozidlaRoutes(server: FastifyInstance): Promise<void> {
       const vozidlo = await prisma.heliosVozidlo.findUnique({ where: { id } });
       if (!vozidlo) return reply.code(404).send(nenalezeno);
 
-      const [model, majitel, kontakt, zakazky, typy] = await Promise.all([
+      const [model, majitel, kontakt, zakazky] = await Promise.all([
         vozidlo.znackamodelId === null
           ? null
           : prisma.heliosModel.findUnique({
@@ -136,7 +135,6 @@ export async function vozidlaRoutes(server: FastifyInstance): Promise<void> {
           include: sVazbami,
           orderBy: { datumPrijeti: "desc" },
         }),
-        nactiTypyZakazek(),
       ]);
 
       return {
@@ -167,7 +165,7 @@ export async function vozidlaRoutes(server: FastifyInstance): Promise<void> {
           phone: kontakt.telefonMobil,
           email: kontakt.email,
         },
-        orders: zakazky.map((zakazka) => doOdpovedi(zakazka, typy)),
+        orders: await odpovedi(zakazky),
       };
     },
   );

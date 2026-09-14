@@ -13,7 +13,12 @@ import {
   type OrganizaceZHeliosu,
   type VozidloZHeliosu,
 } from "./cteni.js";
-import { ulozDavkove, type Radek, type Sloupec } from "./davka.js";
+import {
+  nactiPoCastech,
+  ulozDavkove,
+  type Radek,
+  type Sloupec,
+} from "./davka.js";
 import { cislo, text } from "./prevod.js";
 
 /**
@@ -198,24 +203,6 @@ export async function synchronizujZrcadla(): Promise<PocetyZrcadel> {
   );
 
   return { vozidla, organizace, modely, kontakty };
-}
-
-/**
- * Seznam klíčů do dotazu `in (...)` po částech. SQL Server nepustí do
- * jednoho příkazu víc než 2100 parametrů - a hned po prvním nasazení,
- * než proběhne plný běh, chybí úplně všechno, na co zakázky ukazují.
- */
-const KLICU_V_DOTAZU = 1000;
-
-async function nactiPoCastech<T>(
-  id: number[],
-  nacti: (cast: number[]) => Promise<T[]>,
-): Promise<T[]> {
-  const vysledek: T[] = [];
-  for (let od = 0; od < id.length; od += KLICU_V_DOTAZU) {
-    vysledek.push(...(await nacti(id.slice(od, od + KLICU_V_DOTAZU))));
-  }
-  return vysledek;
 }
 
 type Klic = { id: number | null };

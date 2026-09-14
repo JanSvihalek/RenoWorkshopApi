@@ -53,6 +53,15 @@ export type ZakazkaZHeliosu = {
    */
   vozidlo_id?: number | string | null;
   organizace_id?: number | string | null;
+
+  /**
+   * `cislo_subjektu` hlavičky zakázky - klíč pro napojení závad. Nepovinné
+   * jako ostatní doplňky: dokud ho pohled nevrací, zakázka je bez závad.
+   */
+  zakazka_id?: number | string | null;
+
+  /** Tentýž klíč, když ho pohled vrací pod původním jménem z Heliosu. */
+  cislo_subjektu?: number | string | null;
 };
 
 export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {
@@ -212,5 +221,34 @@ export async function nactiKontaktyPodleId(
   return prisma.$queryRaw<KontaktZHeliosu[]>`
     select * from dbo.v_renoworkshop_kontakty
     where cislo_subjektu in (${Prisma.join(id)})
+  `;
+}
+
+/**
+ * Závada z pohledu `v_renoworkshop_zavady`. `zakazka` je `cislo_subjektu`
+ * hlavičky zakázky.
+ */
+export type ZavadaZHeliosu = {
+  cislo_subjektu: number;
+  reference_subjektu: string | null;
+  poznamka: string | null;
+  zakazka: number | null;
+};
+
+/** Závady vyjmenovaných zakázek (podle `cislo_subjektu` hlavičky). */
+export async function nactiZavadyZakazek(
+  idZakazek: number[],
+): Promise<ZavadaZHeliosu[]> {
+  if (idZakazek.length === 0) return [];
+  return prisma.$queryRaw<ZavadaZHeliosu[]>`
+    select * from dbo.v_renoworkshop_zavady
+    where zakazka in (${Prisma.join(idZakazek)})
+  `;
+}
+
+/** Všechny závady - noční běh. */
+export async function nactiVsechnyZavady(): Promise<ZavadaZHeliosu[]> {
+  return prisma.$queryRaw<ZavadaZHeliosu[]>`
+    select * from dbo.v_renoworkshop_zavady
   `;
 }

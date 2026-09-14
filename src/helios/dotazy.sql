@@ -34,6 +34,7 @@ SELECT hlv.reference_subjektu AS c_zakazky,
        -- zakázky napříč lety. Viz zrcadla níže.
        hlv.vozidlo            AS vozidlo_id,
        hlv.organizace         AS organizace_id,
+       hlv.cislo_subjektu,
        sub.reference_subjektu AS utvar,
        sub.nazev_subjektu     AS utvar_nazev,
        hlv.datum_prijeti,
@@ -150,6 +151,29 @@ SELECT cislo_subjektu, jmeno, prijmeni, ulice_domu, misto_domu, psc_domu,
 FROM   RAS_HEN.RNC_ostra.lcs.kontaktni_osoby;
 go
 
+-- =====================================================================
+-- Závady (úkony) na zakázkách
+-- =====================================================================
+--
+-- Prostý opis tabulky. `zakazka` je cislo_subjektu hlavičky zakázky, proto
+-- oba zakázkové pohledy nahoře vracejí i hlv.cislo_subjektu (na serveru
+-- od 14. 9. 2026 doplněno jako `cislo_subjektu`; služba přijme i alias
+-- `zakazka_id`). Do seznamu sloupců obou zakázkových pohledů patří:
+--
+--   hlv.cislo_subjektu,
+--
+-- Synchronizace se ptá `where zakazka in (...)` - pohled musí zůstat
+-- prostý, ať se podmínka propíše až na Helios.
+
+if object_id('dbo.v_renoworkshop_zavady') is not null
+    drop view dbo.v_renoworkshop_zavady;
+go
+
+create view dbo.v_renoworkshop_zavady as
+SELECT cislo_subjektu, reference_subjektu, poznamka, zakazka
+FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_zavady;
+go
+
 -- ---------------------------------------------------------------------
 -- Kdyby byly pohledy přes linkovaný server pomalé
 -- ---------------------------------------------------------------------
@@ -180,6 +204,7 @@ go
 --            org.nazev_subjektu     AS organizace,
 --            hlv.vozidlo            AS vozidlo_id,
 --            hlv.organizace         AS organizace_id,
+--            hlv.cislo_subjektu,
 --            sub.reference_subjektu AS utvar,
 --            sub.nazev_subjektu     AS utvar_nazev,
 --            hlv.datum_prijeti,

@@ -5,6 +5,7 @@ import { config } from './config.js';
 import { prisma } from './db.js';
 import { synchronizuj } from './helios/sync.js';
 import { synchronizujHistorii } from './helios/historie.js';
+import { synchronizujVsechnyZavady } from './helios/zavady.js';
 import { synchronizujZrcadla } from './helios/zrcadla.js';
 import { vozidlaRoutes } from './routes/vozidla.js';
 import { zakazkyRoutes } from './routes/zakazky.js';
@@ -56,7 +57,8 @@ function naplanujSynchronizaci(): NodeJS.Timeout {
 const casovac = naplanujSynchronizaci();
 
 /**
- * Noční běh: vozidla, zákazníci, modely a kontakty, pak historie zakázek.
+ * Noční běh: vozidla, zákazníci, modely a kontakty, historie zakázek
+ * a závady.
  *
  * Kontroluje se každých deset minut, jestli už je ta hodina a jestli dnes
  * ještě neběžel - ne přesný časovač na tři hodiny ráno. Ten by po restartu
@@ -92,6 +94,18 @@ async function nocniBeh(): Promise<void> {
     );
   } catch (chyba) {
     server.log.error({ chyba }, 'Noční synchronizace historie zakázek selhala');
+  }
+
+  // Závady až po historii: potřebují mít zakázky, ke kterým patří.
+  zacatek = Date.now();
+  try {
+    const { pocet } = await synchronizujVsechnyZavady();
+    server.log.info(
+      { pocet, sekund: cas(zacatek) },
+      'Noční synchronizace závad hotová',
+    );
+  } catch (chyba) {
+    server.log.error({ chyba }, 'Noční synchronizace závad selhala');
   }
 }
 

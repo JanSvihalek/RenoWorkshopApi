@@ -24,8 +24,63 @@ type ZakazkaSVazbami = Prisma.HeliosZakazkaGetPayload<{
   include: typeof sVazbami;
 }>;
 
+type Zavada = { id: number; reference: string | null; poznamka: string | null };
+
+/**
+ * Závady k zakázkám jedním dotazem (po částech kvůli limitu parametrů).
+ * Mezi zakázkami a závadami není vazba v databázi - viz HeliosZavada.
+ */
+async function nactiZavady(
+  zakazky: { zakazkaId: number | null }[],
+): Promise<Map<number, Zavada[]>> {
+  const id = [
+    ...new Set(
+      zakazky.flatMap((z) => (z.zakazkaId === null ? [] : [z.zakazkaId])),
+    ),
+  ];
+  const podleZakazky = new Map<number, Zavada[]>();
+
+  for (let od = 0; od < id.length; od += 2000) {
+    const zavady = await prisma.heliosZavada.findMany({
+      where: { zakazkaId: { in: id.slice(od, od + 2000) } },
+      // V pořadí, v jakém je poradce v Heliosu zapsal.
+      orderBy: { id: "asc" },
+    });
+    for (const zavada of zavady) {
+      if (zavada.zakazkaId === null) continue;
+      const seznam = podleZakazky.get(zavada.zakazkaId) ?? [];
+      seznam.push(zavada);
+      podleZakazky.set(zavada.zakazkaId, seznam);
+    }
+  }
+
+  return podleZakazky;
+}
+
+/**
+ * Zakázky v tvaru pro aplikaci - i s typem a závadami. Jediné místo, kudy
+ * zakázka jde ven, ať ji seznam, detail, hledání i karta vozidla vrací
+ * stejně.
+ */
+export async function odpovedi(zakazky: ZakazkaSVazbami[]) {
+  const [typy, zavady] = await Promise.all([
+    nactiTypyZakazek(),
+    nactiZavady(zakazky),
+  ]);
+  return zakazky.map((zakazka) => doOdpovedi(zakazka, typy, zavady));
+}
+
+async function odpoved(zakazka: ZakazkaSVazbami) {
+  const [jedna] = await odpovedi([zakazka]);
+  return jedna;
+}
+
 /** Tvar odpovědi je daný kontraktem v docs/API.md mobilní aplikace. */
-export function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
+function doOdpovedi(
+  zakazka: ZakazkaSVazbami,
+  typy: TypyZakazek,
+  zavady: Map<number, Zavada[]>,
+) {
   return {
     id: zakazka.cisloZakazky,
     licensePlate: zakazka.spz ?? "",
@@ -66,9 +121,17 @@ export function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
       author: p.autor,
       createdAt: p.vytvorenoAt.toISOString().slice(0, 19),
     })),
-    // Úkony (závady) se z Heliosu zatím netahají - aplikace tuhle sekci
-    // při prázdném seznamu nezobrazí.
+    // Úkony s odškrtáváním zatím nejsou - závady z Heliosu chodí zvlášť
+    // v `defects` a jsou jen ke čtení.
     workItems: [],
+    defects: (zakazka.zakazkaId === null
+      ? []
+      : (zavady.get(zakazka.zakazkaId) ?? [])
+    ).map((zavada) => ({
+      id: String(zavada.id),
+      code: zavada.reference,
+      text: zavada.poznamka ?? "",
+    })),
   };
 }
 
@@ -102,8 +165,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
       include: sVazbami,
       orderBy: { datumPrijeti: "desc" },
     });
-    const typy = await nactiTypyZakazek();
-    return zakazky.map((zakazka) => doOdpovedi(zakazka, typy));
+    return odpovedi(zakazky);
   });
 
   /**
@@ -146,8 +208,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
         take: config.HLEDANI_LIMIT,
       });
 
-      const typy = await nactiTypyZakazek();
-      return zakazky.map((zakazka) => doOdpovedi(zakazka, typy));
+      return odpovedi(zakazky);
     },
   );
 
@@ -156,7 +217,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const zakazka = await nactiJednu(request.params.id);
       if (!zakazka) return reply.code(404).send(nenalezena);
-      return doOdpovedi(zakazka, await nactiTypyZakazek());
+      return odpoved(zakazka);
     },
   );
 
@@ -234,7 +295,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
         where: { cisloZakazky: zakazka.cisloZakazky },
         include: sVazbami,
       });
-      return doOdpovedi(aktualni, await nactiTypyZakazek());
+      return odpoved(aktualni);
     },
   );
 
@@ -275,7 +336,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
         where: { cisloZakazky: zakazka.cisloZakazky },
         include: sVazbami,
       });
-      return doOdpovedi(aktualni, await nactiTypyZakazek());
+      return odpoved(aktualni);
     },
   );
 
@@ -327,7 +388,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
         where: { cisloZakazky: zakazka.cisloZakazky },
         include: sVazbami,
       });
-      return doOdpovedi(aktualni, await nactiTypyZakazek());
+      return odpoved(aktualni);
     },
   );
 
@@ -380,7 +441,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
         where: { cisloZakazky: zakazka.cisloZakazky },
         include: sVazbami,
       });
-      return doOdpovedi(aktualni, await nactiTypyZakazek());
+      return odpoved(aktualni);
     },
   );
 
