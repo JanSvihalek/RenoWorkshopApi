@@ -242,6 +242,9 @@ výjimečně opakuje.
 
 Aplikace je ukazuje v detailu zakázky jen ke čtení (`defects` v API).
 
+První naplnění (14. 9. 2026): **253 216 závad za 182 vteřin**. Celý noční
+běh (zrcadla, historie, závady) tak trvá kolem dvanácti minut.
+
 Zavedení: `docs/sql/zavady.sql`, pohled závad a `hlv.cislo_subjektu`
 v obou zakázkových pohledech, pak nasadit službu.
 
