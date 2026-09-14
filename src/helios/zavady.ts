@@ -29,6 +29,7 @@ const SLOUPCE: Sloupec[] = [
   { nazev: "cislo_subjektu", typ: "int" },
   { nazev: "zakazka", typ: "int" },
   { nazev: "reference_subjektu", typ: "nvarchar(50)" },
+  { nazev: "nazev_subjektu", typ: "nvarchar(255)" },
   { nazev: "poznamka", typ: "nvarchar(max)" },
   { nazev: "videno_at", typ: "datetime2" },
 ];
@@ -39,6 +40,7 @@ export function radekZavady(z: ZavadaZHeliosu, ted: Date): Radek {
     cislo_subjektu: z.cislo_subjektu,
     zakazka: cislo(z.zakazka),
     reference_subjektu: text(z.reference_subjektu),
+    nazev_subjektu: text(z.nazev_subjektu),
     // Poznámka je text závady - mezery na začátku a konci nic neznamenají,
     // zalomení uvnitř ano, ta zůstanou.
     poznamka: text(z.poznamka),

@@ -24,7 +24,12 @@ type ZakazkaSVazbami = Prisma.HeliosZakazkaGetPayload<{
   include: typeof sVazbami;
 }>;
 
-type Zavada = { id: number; reference: string | null; poznamka: string | null };
+type Zavada = {
+  id: number;
+  reference: string | null;
+  nazev: string | null;
+  poznamka: string | null;
+};
 
 /**
  * Závady k zakázkám jedním dotazem (po částech kvůli limitu parametrů).
@@ -164,6 +169,8 @@ function doOdpovedi(
     ).map((zavada) => ({
       id: String(zavada.id),
       code: zavada.reference,
+      // Stručný popis; `text` jsou podrobnosti pod ním.
+      title: zavada.nazev,
       text: zavada.poznamka ?? "",
     })),
   };

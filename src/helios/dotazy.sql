@@ -176,7 +176,7 @@ if object_id('dbo.v_renoworkshop_zavady') is not null
 go
 
 create view dbo.v_renoworkshop_zavady as
-SELECT cislo_subjektu, reference_subjektu, poznamka, zakazka
+SELECT cislo_subjektu, reference_subjektu, nazev_subjektu, poznamka, zakazka
 FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_zavady;
 go
 

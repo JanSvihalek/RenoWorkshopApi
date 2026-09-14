@@ -133,6 +133,11 @@ model HeliosZavada {
   zakazkaId Int? @map("zakazka")
 
   reference String? @map("reference_subjektu") @db.NVarChar(50)
+
+  /// Stručný popis závady (`nazev_subjektu`) - podle něj ji dílna pozná.
+  nazev     String? @map("nazev_subjektu") @db.NVarChar(255)
+
+  /// Podrobnosti, jak je poradce rozepsal. Může mít víc řádků.
   poznamka  String? @db.NVarChar(Max)
 
   videnoAt DateTime @map("videno_at") @db.DateTime2

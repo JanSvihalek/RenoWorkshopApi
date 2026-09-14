@@ -41,6 +41,7 @@ describe("závada", () => {
         {
           cislo_subjektu: 9001,
           reference_subjektu: " 001 ",
+          nazev_subjektu: " Zadní nárazník ",
           poznamka: "  Vyměnit zadní nárazník\nlakovat do barvy  ",
           zakazka: 812345,
         },
@@ -50,6 +51,7 @@ describe("závada", () => {
       cislo_subjektu: 9001,
       zakazka: 812345,
       reference_subjektu: "001",
+      nazev_subjektu: "Zadní nárazník",
       // Okraje pryč, zalomení uvnitř zůstává - poradce tak závadu napsal.
       poznamka: "Vyměnit zadní nárazník\nlakovat do barvy",
       videno_at: ted,

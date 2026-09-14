@@ -246,6 +246,12 @@ export type ZavadaZHeliosu = {
   reference_subjektu: string | null;
   poznamka: string | null;
   zakazka: number | null;
+
+  /**
+   * Stručný popis závady. Nepovinné: dokud ho pohled nevrací, závada
+   * se ukáže jen s poznámkou.
+   */
+  nazev_subjektu?: string | null;
 };
 
 /** Závady vyjmenovaných zakázek (podle `cislo_subjektu` hlavičky). */
