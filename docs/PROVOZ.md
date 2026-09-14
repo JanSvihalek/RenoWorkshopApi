@@ -224,6 +224,9 @@ Zavedení (jednou):
 3. `docs/sql/pohled-zakazky-jen-rozdelane.sql` - až potom, ať ukončené
    zakázky nechybí ani chvíli
 
+První naplnění na RENDCAPPu (14. 9. 2026): **70 626 zakázek za 228 vteřin**.
+Celý noční běh (zrcadla + historie) tedy trvá kolem devíti minut.
+
 **První naplnění** po založení tabulek:
 
 ```
