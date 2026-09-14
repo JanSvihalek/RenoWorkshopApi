@@ -4,14 +4,6 @@
 -- je jeho verzovaná kopie. Když se pohled změní, přepiš i tenhle soubor,
 -- ať je v historii vidět proč.
 --
--- POZOR: kopie zakázkového pohledu níže je ZASTARALÁ. Na serveru má navíc
--- zodpovědnou osobu (zodpovida_kod, zodpovida), která se sem nepromítla.
--- Nespouštěj ho, dokud se nedoplní - `drop view` by o ni server připravil
--- a aplikace by ji tiše přestala ukazovat.
---
--- Na založení nových pohledů slouží docs/sql/pohledy-zrcadla.sql, ten se
--- zakázkového nedotýká.
---
 -- Zakázky a k nim čtyři zrcadla: vozidla, zákazníci, číselník značek
 -- a modelů a kontaktní osoby. Úkony (závady) se do appky netahají.
 --
@@ -28,24 +20,24 @@ if object_id('dbo.v_renoworkshop_zakazky') is not null
     drop view dbo.v_renoworkshop_zakazky;
 go
 
+-- Srovnáno podle serveru 14. 9. 2026 (Script View as z RENDCAPPu).
 create view dbo.v_renoworkshop_zakazky as
 SELECT hlv.reference_subjektu AS c_zakazky,
        hlv.vin1               AS vin,
        hlv.spz,
        znm.nazev_dlouhy       AS model,
        org.nazev_subjektu     AS organizace,
+       -- Vozidlo a organizace jako klíče, ne jen jako text. Slouží k poskládání
+       -- historie vozu: naskenuje se SPZ, najde vozidlo a k němu všechny jeho
+       -- zakázky napříč lety. Viz zrcadla níže.
+       hlv.vozidlo            AS vozidlo_id,
+       hlv.organizace         AS organizace_id,
        sub.reference_subjektu AS utvar,
        sub.nazev_subjektu     AS utvar_nazev,
        hlv.datum_prijeti,
        hlv.datum_zprovozneni  AS predpoklad_datum_dokonceni,
        hlv.stav_real,
        val.display_value      AS stav_HeN,
-       -- Vozidlo a organizace jako klíče, ne jen jako text. Pohled se přes
-       -- ně joinoval odjakživa, jen je nevracel. Slouží k poskládání
-       -- historie vozu: naskenuje se SPZ, najde vozidlo a k němu všechny
-       -- jeho zakázky napříč lety.
-       hlv.vozidlo            AS vozidlo_id,
-       hlv.organizace         AS organizace_id,
        -- Číslo řady zakázky (801 běžná, 802 interní, 803 PDI...).
        -- Schválně číslo, ne název: název se dá v Heliosu přepsat a filtr
        -- zapnutý v telefonu by pak přestal sedět. Názvy k číslům drží
@@ -57,7 +49,11 @@ SELECT hlv.reference_subjektu AS c_zakazky,
        -- jen zůstanou bez typu.
        CASE WHEN rada.reference_subjektu LIKE '8%'
             THEN LTRIM(RTRIM(rada.reference_subjektu))
-       END                     AS zakazka_rada
+       END                    AS zakazka_rada,
+       -- Kdo za zakázku zodpovídá. Stejná tabulka subjekty jako útvar,
+       -- proto druhý alias: kód je stabilní klíč, jméno se zobrazuje.
+       tech.reference_subjektu AS zodpovida_kod,
+       tech.nazev_subjektu     AS zodpovida
 FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.organizace AS org
             ON hlv.organizace = org.cislo_subjektu
@@ -75,6 +71,8 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
             ON voz.znackamodel = znm.cislo_subjektu
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.ino_srvszak_zakazka AS rada
             ON hlv.zakazka_hlavni = rada.cislo_subjektu
+       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.subjekty AS tech
+            ON hlv.zodpovida = tech.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
        AND hlv.stav_real <> 10;
 go
@@ -186,12 +184,19 @@ go
 --            hlv.spz,
 --            znm.nazev_dlouhy       AS model,
 --            org.nazev_subjektu     AS organizace,
+--            hlv.vozidlo            AS vozidlo_id,
+--            hlv.organizace         AS organizace_id,
 --            sub.reference_subjektu AS utvar,
 --            sub.nazev_subjektu     AS utvar_nazev,
 --            hlv.datum_prijeti,
 --            hlv.datum_zprovozneni  AS predpoklad_datum_dokonceni,
 --            hlv.stav_real,
---            val.display_value      AS stav_HeN
+--            val.display_value      AS stav_HeN,
+--            CASE WHEN rada.reference_subjektu LIKE ''8%''
+--                 THEN LTRIM(RTRIM(rada.reference_subjektu))
+--            END                    AS zakazka_rada,
+--            tech.reference_subjektu AS zodpovida_kod,
+--            tech.nazev_subjektu     AS zodpovida
 --     FROM   RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
 --            LEFT OUTER JOIN RNC_ostra.lcs.organizace AS org
 --                 ON hlv.organizace = org.cislo_subjektu
@@ -204,6 +209,10 @@ go
 --                 ON hlv.vozidlo = voz.cislo_subjektu
 --            LEFT OUTER JOIN RNC_ostra.lcs.ino_znackamodel AS znm
 --                 ON voz.znackamodel = znm.cislo_subjektu
+--            LEFT OUTER JOIN RNC_ostra.lcs.ino_srvszak_zakazka AS rada
+--                 ON hlv.zakazka_hlavni = rada.cislo_subjektu
+--            LEFT OUTER JOIN RNC_ostra.lcs.subjekty AS tech
+--                 ON hlv.zodpovida = tech.cislo_subjektu
 --     WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
 --            AND hlv.stav_real <> 10
 -- ');

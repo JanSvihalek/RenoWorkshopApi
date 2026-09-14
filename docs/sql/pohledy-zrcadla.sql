@@ -3,9 +3,8 @@
 -- Spusť CELÝ tenhle soubor v databázi RenoWorkshop na RENDCAPPu.
 -- Jde pustit opakovaně - pohledy se pokaždé založí znovu.
 --
--- Zakládá jen NOVÉ pohledy. Zakázkového v_renoworkshop_zakazky se
--- nedotýká schválně: ten na serveru obsahuje úpravy, které v repozitáři
--- nejsou (zodpovědná osoba), a drop + create by o ně přišel.
+-- Zakládá jen pohledy zrcadel. Zakázkového v_renoworkshop_zakazky se
+-- nedotýká - ten je v src/helios/dotazy.sql.
 --
 -- Pohledy musí zůstat prosté. Synchronizace se na nové záznamy doptává
 -- dotazem `where cislo_subjektu in (...)` a spoléhá, že se podmínka
