@@ -42,6 +42,19 @@ export function idHlavicky(z: ZakazkaZHeliosu): number | null {
   return cislo(z.zakazka_id ?? z.cislo_subjektu);
 }
 
+/** Musí odpovídat NVarChar(100) u `cislo_pu` v prisma/schema.prisma. */
+const DELKA_CISLA_PU = 100;
+
+/**
+ * Číslo pojistné události. Ořízne se na šířku sloupce: UDA je volné pole
+ * a delší hodnota by v upsertu shodila celou pětiminutovou synchronizaci
+ * (P2000), ne jen jednu zakázku.
+ */
+export function cisloPu(z: ZakazkaZHeliosu): string | null {
+  const hodnota = text(z.cislo_pojistne_udalosti ?? z.ino_cpu);
+  return hodnota === null ? null : hodnota.slice(0, DELKA_CISLA_PU);
+}
+
 /** Musí odpovídat NVarChar(50) u `rada_reference` v prisma/schema.prisma. */
 const DELKA_RADY = 50;
 
@@ -77,6 +90,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           organizaceId: cislo(z.organizace_id),
           zakazkaId: idHlavicky(z),
           pojistovnaId: cislo(z.pojistovna1),
+          cisloPu: cisloPu(z),
           zodpovidaKod: text(z.zodpovida_kod),
           zodpovida: text(z.zodpovida),
           datumPrijeti: z.datum_prijeti,
@@ -103,6 +117,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
           organizaceId: cislo(z.organizace_id),
           zakazkaId: idHlavicky(z),
           pojistovnaId: cislo(z.pojistovna1),
+          cisloPu: cisloPu(z),
           zodpovidaKod: text(z.zodpovida_kod),
           zodpovida: text(z.zodpovida),
           datumPrijeti: z.datum_prijeti,

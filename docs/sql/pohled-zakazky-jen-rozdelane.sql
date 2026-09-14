@@ -31,6 +31,7 @@ SELECT hlv.reference_subjektu AS c_zakazky,
        hlv.organizace         AS organizace_id,
        hlv.cislo_subjektu,
        hlv.pojistovna1,
+       uda.ino_cpu            AS cislo_pojistne_udalosti,
        sub.reference_subjektu AS utvar,
        sub.nazev_subjektu     AS utvar_nazev,
        hlv.datum_prijeti,
@@ -58,6 +59,10 @@ FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
             ON hlv.zakazka_hlavni = rada.cislo_subjektu
        LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.subjekty AS tech
             ON hlv.zodpovida = tech.cislo_subjektu
+       -- Číslo pojistné události je uživatelsky definovaný atribut, ne
+       -- sloupec hlavičky. UDA má jeden řádek na hlavičku zakázky.
+       LEFT OUTER JOIN RAS_HEN.RNC_ostra.lcs.uda_ino_srvszak_hlavicka AS uda
+            ON uda.cislo_subjektu = hlv.cislo_subjektu
 WHERE  hlv.cislo_poradace IN (10026, 16015, 16879, 17350, 16017, 16877, 17362)
        AND hlv.stav_real NOT IN (3, 10);
 GO

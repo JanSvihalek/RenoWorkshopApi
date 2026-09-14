@@ -68,6 +68,13 @@ export type ZakazkaZHeliosu = {
    * Nepovinné: dokud ji pohled nevrací, zakázka je bez pojišťovny.
    */
   pojistovna1?: number | string | null;
+
+  /**
+   * Číslo pojistné události z UDA (`ino_cpu`). Pohled ho smí vracet jako
+   * `cislo_pojistne_udalosti` i pod původním jménem.
+   */
+  cislo_pojistne_udalosti?: string | number | null;
+  ino_cpu?: string | number | null;
 };
 
 export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {

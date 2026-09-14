@@ -71,6 +71,10 @@ model HeliosZakazka {
   /// `cislo_subjektu` organizace. Název se dohledává v `helios_organizace`,
   /// která drží všechny organizace z Heliosu.
   pojistovnaId    Int?      @map("pojistovna_id")
+
+  /// Číslo pojistné události - uživatelsky definovaný atribut `ino_cpu`
+  /// v `uda_ino_srvszak_hlavicka`. Text, pojišťovny ho píší různě.
+  cisloPu         String?   @map("cislo_pu") @db.NVarChar(100)
   organizaceId    Int?      @map("organizace_id")
 
   zodpovidaKod    String?   @map("zodpovida_kod") @db.NVarChar(50)

@@ -121,6 +121,7 @@ function doOdpovedi(
             id: zakazka.pojistovnaId,
             name: pojistovny.get(zakazka.pojistovnaId) ?? "",
           },
+    insuranceClaimNumber: zakazka.cisloPu,
     // Dílenský stav: poslední záznam, nebo null u zakázky, které ho
     // ještě nikdo nedal. Není to výčet - je to text z číselníku.
     status: zakazka.dilenskeZaznamy[0]?.nazev ?? null,
@@ -232,6 +233,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
             { spz: { contains: dotaz } },
             { spz: { contains: bezMezer } },
             { zakaznik: { contains: dotaz } },
+            { cisloPu: { contains: dotaz } },
             // "nárazník" najde zakázky, kde je v předmětu opravy.
             { dilenskeUdaje: { is: { predmetOpravy: { contains: dotaz } } } },
           ],
