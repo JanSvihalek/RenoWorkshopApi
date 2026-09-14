@@ -62,6 +62,12 @@ export type ZakazkaZHeliosu = {
 
   /** Tentýž klíč, když ho pohled vrací pod původním jménem z Heliosu. */
   cislo_subjektu?: number | string | null;
+
+  /**
+   * Pojišťovna - `cislo_subjektu` organizace z `hlv.pojistovna1`.
+   * Nepovinné: dokud ji pohled nevrací, zakázka je bez pojišťovny.
+   */
+  pojistovna1?: number | string | null;
 };
 
 export async function nactiZakazky(): Promise<ZakazkaZHeliosu[]> {

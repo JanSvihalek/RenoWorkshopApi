@@ -66,6 +66,11 @@ model HeliosZakazka {
   /// se k zakázce napojují závady (`helios_zavady.zakazka`). Číslo zakázky
   /// (`cislo_zakazky`) na to nestačí - v Heliosu se výjimečně opakuje.
   zakazkaId       Int?      @map("zakazka_id")
+
+  /// Pojišťovna u pojistné události (`pojistovna1` na hlavičce zakázky) -
+  /// `cislo_subjektu` organizace. Název se dohledává v `helios_organizace`,
+  /// která drží všechny organizace z Heliosu.
+  pojistovnaId    Int?      @map("pojistovna_id")
   organizaceId    Int?      @map("organizace_id")
 
   zodpovidaKod    String?   @map("zodpovida_kod") @db.NVarChar(50)

@@ -63,11 +63,34 @@ async function nactiZavady(
  * stejně.
  */
 export async function odpovedi(zakazky: ZakazkaSVazbami[]) {
-  const [typy, zavady] = await Promise.all([
+  const [typy, zavady, pojistovny] = await Promise.all([
     nactiTypyZakazek(),
     nactiZavady(zakazky),
+    nactiPojistovny(zakazky),
   ]);
-  return zakazky.map((zakazka) => doOdpovedi(zakazka, typy, zavady));
+  return zakazky.map((zakazka) =>
+    doOdpovedi(zakazka, typy, zavady, pojistovny),
+  );
+}
+
+/**
+ * Názvy pojišťoven k zakázkám. Pojišťoven je pár, takže i u seznamu
+ * s tisícovkou zakázek jde o jeden krátký dotaz.
+ */
+async function nactiPojistovny(
+  zakazky: { pojistovnaId: number | null }[],
+): Promise<Map<number, string>> {
+  const id = [
+    ...new Set(
+      zakazky.flatMap((z) => (z.pojistovnaId === null ? [] : [z.pojistovnaId])),
+    ),
+  ];
+  if (id.length === 0) return new Map();
+  const organizace = await prisma.heliosOrganizace.findMany({
+    where: { id: { in: id } },
+    select: { id: true, nazev: true },
+  });
+  return new Map(organizace.map((o) => [o.id, o.nazev ?? ""]));
 }
 
 async function odpoved(zakazka: ZakazkaSVazbami) {
@@ -80,6 +103,7 @@ function doOdpovedi(
   zakazka: ZakazkaSVazbami,
   typy: TypyZakazek,
   zavady: Map<number, Zavada[]>,
+  pojistovny: Map<number, string>,
 ) {
   return {
     id: zakazka.cisloZakazky,
@@ -88,6 +112,15 @@ function doOdpovedi(
     customerName: zakazka.zakaznik ?? "",
     // Co se na voze opravuje. Zapisuje dílna ručně, Helios to nezná.
     repairSubject: zakazka.dilenskeUdaje?.predmetOpravy ?? null,
+    // Pojišťovna z Heliosu. Když organizace v zrcadle ještě není (noví
+    // se doplňují po synchronizaci), pošle se aspoň id a prázdný název.
+    insurer:
+      zakazka.pojistovnaId === null
+        ? null
+        : {
+            id: zakazka.pojistovnaId,
+            name: pojistovny.get(zakazka.pojistovnaId) ?? "",
+          },
     // Dílenský stav: poslední záznam, nebo null u zakázky, které ho
     // ještě nikdo nedal. Není to výčet - je to text z číselníku.
     status: zakazka.dilenskeZaznamy[0]?.nazev ?? null,

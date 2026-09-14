@@ -62,6 +62,12 @@ describe("historie zakázek", () => {
     expect(radek.cislo_zakazky).toBe("Z121260001 ");
   });
 
+  it("pojišťovnu vezme jako číslo organizace", () => {
+    const radek = radekHistorie(zakazka({ pojistovna1: "60001" }), new Date());
+    expect(radek.pojistovna_id).toBe(60001);
+    expect(radekHistorie(zakazka(), new Date()).pojistovna_id).toBeNull();
+  });
+
   it("nová zakázka z historie je neaktivní", () => {
     expect(radekHistorie(zakazka(), new Date()).je_aktivni).toBe(0);
   });

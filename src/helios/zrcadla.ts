@@ -255,6 +255,9 @@ export async function doplnChybejiciZrcadla(): Promise<PocetyZrcadel> {
       select organizace_id as id from helios_zakazky
       where je_aktivni = 1 and organizace_id is not null
       union
+      select pojistovna_id as id from helios_zakazky
+      where je_aktivni = 1 and pojistovna_id is not null
+      union
       select v.majitel as id
       from helios_vozidla v
       join helios_zakazky z on z.vozidlo_id = v.cislo_subjektu and z.je_aktivni = 1
