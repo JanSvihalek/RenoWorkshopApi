@@ -75,8 +75,9 @@ export type OrganizaceZHeliosu = {
   psc: string | null;
   telefon: string | null;
   e_mail: string | null;
-  cislo_co: string | null;
-  cislo_cp: string | null;
+  // Číslo popisné a orientační bývá v Heliosu číslo, ale nemusí ("12a").
+  cislo_co: string | number | null;
+  cislo_cp: string | number | null;
   ulice_ds: string | null;
 };
 
@@ -158,6 +159,17 @@ export type ModelZHeliosu = {
 export async function nactiModely(): Promise<ModelZHeliosu[]> {
   return prisma.$queryRaw<ModelZHeliosu[]>`
     select * from dbo.v_renoworkshop_model
+  `;
+}
+
+/** Jen vyjmenované modely - kdyby mezi nočními běhy přibyl nový. */
+export async function nactiModelyPodleId(
+  id: number[],
+): Promise<ModelZHeliosu[]> {
+  if (id.length === 0) return [];
+  return prisma.$queryRaw<ModelZHeliosu[]>`
+    select * from dbo.v_renoworkshop_model
+    where cislo_subjektu in (${Prisma.join(id)})
   `;
 }
 

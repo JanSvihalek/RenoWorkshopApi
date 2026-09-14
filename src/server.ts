@@ -4,6 +4,7 @@ import { overPrihlaseni } from './auth.js';
 import { config } from './config.js';
 import { prisma } from './db.js';
 import { synchronizuj } from './helios/sync.js';
+import { synchronizujZrcadla } from './helios/zrcadla.js';
 import { zakazkyRoutes } from './routes/zakazky.js';
 
 const server = Fastify({
@@ -51,9 +52,51 @@ function naplanujSynchronizaci(): NodeJS.Timeout {
 
 const casovac = naplanujSynchronizaci();
 
+/**
+ * Plná synchronizace vozidel, zákazníků, modelů a kontaktů jednou za noc.
+ *
+ * Kontroluje se každých deset minut, jestli už je ta hodina a jestli dnes
+ * ještě neběžela - ne přesný časovač na tři hodiny ráno. Ten by po restartu
+ * služby v noci běh přeskočil, nebo naopak spustil dvakrát.
+ *
+ * Nové záznamy na tenhle běh nečekají, ty doplňuje synchronizace zakázek.
+ */
+let zrcadlaDneBezela: string | null = null;
+let zrcadlaBezi = false;
+
+function naplanujZrcadla(): NodeJS.Timeout {
+  return setInterval(() => {
+    const ted = new Date();
+    const den = ted.toDateString();
+    if (ted.getHours() !== config.ZRCADLA_HODINA) return;
+    if (zrcadlaDneBezela === den || zrcadlaBezi) return;
+
+    zrcadlaBezi = true;
+    zrcadlaDneBezela = den;
+    const zacatek = Date.now();
+
+    synchronizujZrcadla()
+      .then((pocty) => {
+        server.log.info(
+          { ...pocty, sekund: Math.round((Date.now() - zacatek) / 1000) },
+          'Noční synchronizace vozidel a zákazníků hotová',
+        );
+      })
+      .catch((chyba) => {
+        server.log.error({ chyba }, 'Noční synchronizace vozidel a zákazníků selhala');
+      })
+      .finally(() => {
+        zrcadlaBezi = false;
+      });
+  }, 10 * 60 * 1000);
+}
+
+const casovacZrcadel = naplanujZrcadla();
+
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
     clearInterval(casovac);
+    clearInterval(casovacZrcadel);
     void (async () => {
       await server.close();
       await prisma.$disconnect();

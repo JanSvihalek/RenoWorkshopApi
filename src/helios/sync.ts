@@ -1,6 +1,7 @@
 import { prisma } from "../db.js";
 import { jeUkoncena } from "../domain/stav.js";
 import { nactiZakazky, type ZakazkaZHeliosu } from "./cteni.js";
+import { doplnChybejiciZrcadla } from "./zrcadla.js";
 
 /**
  * Přenos zakázek z Heliosu do provozní databáze.
@@ -125,6 +126,15 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
       where: { id: beh.id },
       data: { konecAt: new Date(), pocetZakazek: aktivni.length },
     });
+
+    // Až po zapsání zakázek a mimo jejich chybu: když se Helios na vozidlo
+    // zrovna nedá doptat, zakázky už jsou uložené a vozidlo se doplní
+    // příští běh. Radši chvíli bez majitele než zakázky, které nedotekly.
+    try {
+      await doplnChybejiciZrcadla();
+    } catch (chyba) {
+      console.error("Doplnění vozidel a zákazníků selhalo", chyba);
+    }
 
     return { pocet: aktivni.length };
   } catch (chyba) {

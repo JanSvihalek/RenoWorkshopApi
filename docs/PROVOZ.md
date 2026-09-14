@@ -159,6 +159,9 @@ Jeden běh vypadá takhle:
    je nikdo neobnovil. Zakázka se může i vrátit na dílnu (reklamace),
    pak se příznak zase přepne.
 6. Doplní do `synchronizace` konec běhu a počet zakázek, nebo chybu.
+7. Doplní vozidla, zákazníky, modely a kontakty, na které zakázky ukazují
+   a v zrcadlech ještě nejsou (viz níže). Když to selže, zakázky už jsou
+   uložené a doplnění se zkusí příští běh.
 
 **Výpadek Heliosu službu neshodí.** Chyba se zapíše, aplikace dál ukazuje
 poslední známý stav — což je pro dílnu lepší než prázdná obrazovka.
@@ -166,6 +169,34 @@ poslední známý stav — což je pro dílnu lepší než prázdná obrazovka.
 Kromě časovače jde synchronizaci vyvolat ručně přes `POST /api/sync`
 (použije se, když poradce právě založil zakázku a mechanik na ni čeká).
 Je omezená na **jedno volání za minutu pro celou dílnu**, další dostane `429`.
+
+### Vozidla, zákazníci, modely a kontakty
+
+Kvůli vyhledávání podle SPZ drží služba kopie čtyř tabulek z Heliosu:
+`helios_vozidla`, `helios_organizace`, `helios_modely`, `helios_kontakty`.
+V září 2026 to bylo 51 360 vozidel, 61 201 organizací, 5 526 modelů
+a 73 078 kontaktů.
+
+Plní se dvěma cestami:
+
+- **Plný běh jednou za noc** (`ZRCADLA_HODINA`, výchozí 3:00) opíše všechna
+  čtyři zrcadla celá. Tím se propíší změny — nový telefon, přeznačené auto.
+- **Doplnění po každé synchronizaci zakázek** dotáhne jen to, co chybí.
+  Nový zákazník se tak objeví do pěti minut, ne až ráno. Většinu běhů
+  nenajde nic a Heliosu se nedotkne.
+
+Zapisuje se dávkově přes `MERGE` (`src/helios/davka.ts`), ne po řádcích —
+po jednom by zápis 190 000 řádků trval řádově déle než čtení z Heliosu.
+Ze zrcadel se nikdy nic nemaže.
+
+**První naplnění** po založení tabulek:
+
+```
+npm run build
+npm run zrcadla
+```
+
+Vypíše počty a dobu běhu. Jde pustit kdykoli znovu a běžící služba mu nevadí.
 
 ## Co se děje při práci v aplikaci
 

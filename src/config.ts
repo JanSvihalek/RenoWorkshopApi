@@ -18,6 +18,9 @@ const schema = z.object({
 
   SYNC_INTERVAL_SECONDS: z.coerce.number().int().min(30).default(300),
 
+  // V kolik hodin (místního času serveru) běží plná synchronizace vozidel,
+  // zákazníků, modelů a kontaktů. Kolem 190 000 řádků - patří do noci.
+  ZRCADLA_HODINA: z.coerce.number().int().min(0).max(23).default(3),
 
   // Kolik zakázek nejvýš vrátí hledání v archivu.
   HLEDANI_LIMIT: z.coerce.number().int().min(10).max(500).default(100),
