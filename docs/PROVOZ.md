@@ -199,6 +199,10 @@ npm run zrcadla
 
 Vypíše počty a dobu běhu. Jde pustit kdykoli znovu a běžící služba mu nevadí.
 
+První naplnění na RENDCAPPu (září 2026) trvalo **300 vteřin**. Většina času
+je zápis, čtení z Heliosu je v řádu vteřin. Kdyby se noční běh začal
+výrazně prodlužovat, je to první číslo, se kterým ho porovnat.
+
 ## Co se děje při práci v aplikaci
 
 **Otevření seznamu** — `GET /api/orders` vrací **všechny rozdělané
