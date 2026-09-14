@@ -66,10 +66,36 @@ export async function ulozDavkove(
   sloupce: Sloupec[],
   radky: Radek[],
 ): Promise<number> {
-  for (const prikaz of sestavDavky(tabulka, klic, sloupce, radky)) {
+  const unikatni = bezDuplicit(klic, radky);
+  for (const prikaz of sestavDavky(tabulka, klic, sloupce, unikatni)) {
     await prisma.$executeRaw(prikaz);
   }
-  return radky.length;
+  return unikatni.length;
+}
+
+/**
+ * Jeden řádek na klíč; při shodě vyhrává poslední.
+ *
+ * Pohled z Heliosu umí vrátit tutéž zakázku dvakrát - první naplnění
+ * historie zapsalo 70 626 řádků, v tabulce jich skončilo 70 619. Dokud
+ * kopie padnou do různých dávek, druhá jen přepíše první. Když ale
+ * padnou do **stejné**, MERGE by vkládal dva řádky se stejným klíčem
+ * a SQL Server odmítne celou dávku - noční běh by občas spadl, aniž by
+ * se cokoli změnilo.
+ *
+ * Exportováno kvůli testům.
+ */
+export function bezDuplicit(klic: string, radky: Radek[]): Radek[] {
+  const podleKlice = new Map<unknown, Radek>();
+  for (const radek of radky) {
+    const hodnota = radek[klic];
+    // SQL Server při porovnání řetězců ignoruje mezery na konci, takže
+    // "Z1" a "Z1 " jsou pro MERGE tentýž klíč. Párujeme stejně.
+    const k = typeof hodnota === "string" ? hodnota.trimEnd() : hodnota;
+    podleKlice.delete(k);
+    podleKlice.set(k, radek);
+  }
+  return [...podleKlice.values()];
 }
 
 /**

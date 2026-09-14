@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bezDuplicit,
   radkuVDavce,
   sestavDavky,
   type Radek,
@@ -113,5 +114,35 @@ describe("dávkový zápis zrcadel", () => {
     expect(prikaz!.sql).toContain(
       "(?,?,cast(null as nvarchar(20)),cast(null as datetime2))",
     );
+  });
+});
+
+describe("duplicity v datech z Heliosu", () => {
+  it("tatáž zakázka dvakrát v jedné dávce se zapíše jednou", () => {
+    // Dvě kopie ve stejném MERGE by SQL Server odmítl celé.
+    const radky = bezDuplicit("cislo_zakazky", [
+      { cislo_zakazky: "Z1", spz: "stará" },
+      { cislo_zakazky: "Z2", spz: "jiná" },
+      { cislo_zakazky: "Z1", spz: "nová" },
+    ]);
+
+    expect(radky).toEqual([
+      { cislo_zakazky: "Z2", spz: "jiná" },
+      { cislo_zakazky: "Z1", spz: "nová" },
+    ]);
+  });
+
+  it("mezery na konci klíče páruje stejně jako SQL Server", () => {
+    const radky = bezDuplicit("cislo_zakazky", [
+      { cislo_zakazky: "Z1" },
+      { cislo_zakazky: "Z1 " },
+    ]);
+    expect(radky).toHaveLength(1);
+  });
+
+  it("číselné klíče nesplete s textovými", () => {
+    expect(
+      bezDuplicit("cislo_subjektu", [{ cislo_subjektu: 1 }, { cislo_subjektu: 2 }]),
+    ).toHaveLength(2);
   });
 });
