@@ -67,6 +67,10 @@ model HeliosZakazka {
   /// (`cislo_zakazky`) na to nestačí - v Heliosu se výjimečně opakuje.
   zakazkaId       Int?      @map("zakazka_id")
 
+  /// Pořadač zakázky v Heliosu (`hlv.cislo_poradace`) - v zásadě značka
+  /// a pobočka zpracování. Název se dohledává v `poradace`.
+  cisloPoradace   Int?      @map("cislo_poradace")
+
   /// Pojišťovna u pojistné události (`pojistovna1` na hlavičce zakázky) -
   /// `cislo_subjektu` organizace. Název se dohledává v `helios_organizace`,
   /// která drží všechny organizace z Heliosu.
@@ -369,6 +373,19 @@ model Synchronizace {
   chyba        String?   @db.NVarChar(Max)
 
   @@map("synchronizace")
+}
+
+/// Názvy pořadačů zakázek pro aplikaci. Plní se ručně - pořadačů je pár
+/// a názvy z Heliosu („SeZ 2 zpracování zakázky BMW BSL") se do filtru
+/// nevejdou. Úprava názvu se v telefonech projeví hned.
+model Poradac {
+  /// Číslo pořadače z Heliosu, např. `10026`.
+  cisloPoradace Int    @id @map("cislo_poradace")
+
+  /// Krátký název pro appku, např. `BMW BSL`.
+  nazev         String @db.NVarChar(100)
+
+  @@map("poradace")
 }
 
 /// Názvy řad zakázek. Plní se ručně podle číselníku v Heliosu - je jich

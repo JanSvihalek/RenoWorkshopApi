@@ -69,6 +69,9 @@ export type ZakazkaZHeliosu = {
    */
   pojistovna1?: number | string | null;
 
+  /** Pořadač zakázky. Nepovinné - dokud ho pohled nevrací, zakázka je bez. */
+  cislo_poradace?: number | string | null;
+
   /**
    * Číslo pojistné události z UDA (`ino_cpu`). Pohled ho smí vracet jako
    * `cislo_pojistne_udalosti` i pod původním jménem.

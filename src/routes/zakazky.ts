@@ -9,6 +9,11 @@ import {
   typProApi,
   type TypyZakazek,
 } from "../domain/typy.js";
+import {
+  nactiPoradace,
+  poradacProApi,
+  type Poradace,
+} from "../domain/poradace.js";
 import { pobockaZUtvaru, utvarProApi } from "../domain/utvar.js";
 import { synchronizujNaVyzadani } from "../helios/sync.js";
 
@@ -68,14 +73,14 @@ async function nactiZavady(
  * stejně.
  */
 export async function odpovedi(zakazky: ZakazkaSVazbami[]) {
-  const [typy, zavady, pojistovny] = await Promise.all([
+  const [typy, zavady, pojistovny, poradace] = await Promise.all([
     nactiTypyZakazek(),
     nactiZavady(zakazky),
     nactiPojistovny(zakazky),
+    nactiPoradace(),
   ]);
-  return zakazky.map((zakazka) =>
-    doOdpovedi(zakazka, typy, zavady, pojistovny),
-  );
+  const kontext = { typy, zavady, pojistovny, poradace };
+  return zakazky.map((zakazka) => doOdpovedi(zakazka, kontext));
 }
 
 /**
@@ -104,11 +109,17 @@ async function odpoved(zakazka: ZakazkaSVazbami) {
 }
 
 /** Tvar odpovědi je daný kontraktem v docs/API.md mobilní aplikace. */
+/** Číselníky a vazby načtené jednou pro celou odpověď. */
+type Kontext = {
+  typy: TypyZakazek;
+  zavady: Map<number, Zavada[]>;
+  pojistovny: Map<number, string>;
+  poradace: Poradace;
+};
+
 function doOdpovedi(
   zakazka: ZakazkaSVazbami,
-  typy: TypyZakazek,
-  zavady: Map<number, Zavada[]>,
-  pojistovny: Map<number, string>,
+  { typy, zavady, pojistovny, poradace }: Kontext,
 ) {
   return {
     id: zakazka.cisloZakazky,
@@ -142,6 +153,7 @@ function doOdpovedi(
     branch: pobockaZUtvaru(zakazka.utvarKod),
     department: utvarProApi(zakazka.utvarKod, zakazka.utvarNazev),
     orderType: typProApi(zakazka.radaReference, typy),
+    folder: poradacProApi(zakazka.cisloPoradace, poradace),
     receivedAt: zakazka.datumPrijeti?.toISOString().slice(0, 19) ?? null,
     dueAt: zakazka.terminDokonceni?.toISOString().slice(0, 19) ?? null,
     vin: zakazka.vin ?? "",
