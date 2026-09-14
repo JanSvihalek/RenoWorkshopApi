@@ -388,6 +388,34 @@ Dokud tohle platí, **nepublikovat službu ven** (viz níž): případný průlo
 do procesu by dal k dispozici všemocný databázový účet a přes linkovaný
 server cestu k Heliosu. Ve vnitřní síti je to únosné.
 
+## Otevřené: stejné číslo u dvou zakázek
+
+Pohled historie vrátil 7 zakázek dvakrát (září 2026), např. `Z1212400023`,
+`Z2212400634`, `Z4212501175`. Všechny joiny v pohledu jdou přes
+`cislo_subjektu`, takže nejpravděpodobnější je, že v Heliosu existují
+**dvě různé zakázky se stejným `reference_subjektu`** - třeba v různých
+pořadačích.
+
+Dnešní dopad je malý: jde jen o staré ukončené zakázky a dávkový zápis
+duplicity před zápisem sloučí, takže kvůli nim noční běh nespadne.
+U rozdělaných zakázek duplicity nejsou.
+
+Kdyby se to ale stalo u rozdělané zakázky, dvě auta by se v aplikaci
+slila do jedné karty a dílenské stavy i poznámky by se míchaly - klíčem
+zakázky je u nás právě `reference_subjektu`. Ověřit (jen čte):
+
+```sql
+SELECT hlv.reference_subjektu, hlv.cislo_subjektu, hlv.cislo_poradace,
+       hlv.stav_real, hlv.datum_prijeti, hlv.spz
+FROM   RAS_HEN.RNC_ostra.lcs.ino_srvszak_hlavicka AS hlv
+WHERE  hlv.reference_subjektu IN (N'Z1212400023', N'Z2212400634', N'Z4212501175')
+ORDER  BY hlv.reference_subjektu, hlv.cislo_subjektu;
+```
+
+Různé `cislo_subjektu` u stejného čísla = opravdu dvě zakázky, a pak by
+se klíč zakázky měl změnit na `cislo_subjektu`. Stejné `cislo_subjektu`
+dvakrát = chyba v joinu pohledu.
+
 ## Otevřené: práva účtu linkovaného serveru na Heliosu
 
 Linkovaný server `RAS_HEN` se do Heliosu hlásí vzdáleným účtem

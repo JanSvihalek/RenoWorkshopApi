@@ -6,6 +6,7 @@ import { prisma } from './db.js';
 import { synchronizuj } from './helios/sync.js';
 import { synchronizujHistorii } from './helios/historie.js';
 import { synchronizujZrcadla } from './helios/zrcadla.js';
+import { vozidlaRoutes } from './routes/vozidla.js';
 import { zakazkyRoutes } from './routes/zakazky.js';
 
 const server = Fastify({
@@ -32,6 +33,7 @@ await server.register(
   async (chranene) => {
     chranene.addHook('preHandler', overPrihlaseni);
     await chranene.register(zakazkyRoutes);
+    await chranene.register(vozidlaRoutes);
   },
   { prefix: '/api' },
 );

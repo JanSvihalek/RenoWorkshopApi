@@ -7,6 +7,11 @@ import {
 } from "../src/domain/utvar.js";
 import { jeUkoncena } from "../src/domain/stav.js";
 import { typProApi } from "../src/domain/typy.js";
+import {
+  celeJmeno,
+  kodProHledani,
+  uliceSCislem,
+} from "../src/domain/vozidlo.js";
 
 describe("pobočka z útvaru", () => {
   it("bere druhou číslici kódu", () => {
@@ -93,5 +98,30 @@ describe("typ (řada) zakázky", () => {
       code: "803",
       label: "803",
     });
+  });
+});
+
+describe("vozidlo", () => {
+  it("SPZ z fotoaparátu a z Heliosu se porovnají stejně", () => {
+    expect(kodProHledani("2BK 9485")).toBe("2BK9485");
+    expect(kodProHledani("2bk-9485")).toBe("2BK9485");
+    expect(kodProHledani(" wba 123 ")).toBe("WBA123");
+  });
+
+  it("ulice s číslem popisným i orientačním", () => {
+    expect(uliceSCislem("Masarykova", "123", "4")).toBe("Masarykova 123/4");
+    expect(uliceSCislem("Masarykova", "123", null)).toBe("Masarykova 123");
+    expect(uliceSCislem("Masarykova", null, null)).toBe("Masarykova");
+  });
+
+  it("obec bez ulic dostane č. p.", () => {
+    expect(uliceSCislem(null, "56", null)).toBe("č. p. 56");
+    expect(uliceSCislem(null, null, null)).toBeNull();
+  });
+
+  it("jméno kontaktní osoby i s chybějící částí", () => {
+    expect(celeJmeno("Jan", "Novák")).toBe("Jan Novák");
+    expect(celeJmeno(null, "Novák")).toBe("Novák");
+    expect(celeJmeno(null, null)).toBeNull();
   });
 });

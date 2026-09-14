@@ -12,7 +12,7 @@ import {
 import { pobockaZUtvaru, utvarProApi } from "../domain/utvar.js";
 import { synchronizujNaVyzadani } from "../helios/sync.js";
 
-const sVazbami = {
+export const sVazbami = {
   // Celá historie dílenských stavů, nejnovější první - poslední záznam
   // je ten platný a appka zobrazuje i sled, jak šly za sebou.
   dilenskeZaznamy: { orderBy: { zadanoAt: "desc" } },
@@ -24,7 +24,7 @@ type ZakazkaSVazbami = Prisma.HeliosZakazkaGetPayload<{
 }>;
 
 /** Tvar odpovědi je daný kontraktem v docs/API.md mobilní aplikace. */
-function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
+export function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
   return {
     id: zakazka.cisloZakazky,
     licensePlate: zakazka.spz ?? "",
