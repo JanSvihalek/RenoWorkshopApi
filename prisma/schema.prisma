@@ -87,6 +87,7 @@ model HeliosZakazka {
 
   dilenskeZaznamy DilenskyZaznam[]
   poznamky        Poznamka[]
+  dilenskeUdaje   DilenskeUdaje?
 
   @@index([utvarKod])
   // Seznam v telefonu se ptá právě takhle: aktivní, seřazené podle termínu.
@@ -271,6 +272,30 @@ model DilenskyZaznam {
   // Seznam i detail se ptají na poslední záznam zakázky.
   @@index([cisloZakazky, zadanoAt])
   @@map("dilenske_zaznamy")
+}
+
+/// Údaje zakázky, které vede dílna ručně a Helios je nezná.
+///
+/// Jeden řádek na zakázku, přepisuje se. Na rozdíl od dílenských stavů tu
+/// historie cenu nemá: předmět opravy se upřesňuje ("zadní nárazník" →
+/// "zadní nárazník + víko kufru") a platí vždycky ten poslední.
+///
+/// Vlastní tabulka, ne sloupec v `helios_zakazky`: to je zrcadlo Heliosu
+/// a na jeho sloupce smí sahat jen synchronizace.
+model DilenskeUdaje {
+  cisloZakazky String @id @map("cislo_zakazky") @db.NVarChar(40)
+
+  /// Co se na voze opravuje - volný text, jak ho kolegové dosud psali
+  /// do Excelu. `null` = zatím nezadáno.
+  predmetOpravy String? @map("predmet_opravy") @db.NVarChar(1000)
+
+  upravilKdo String?  @map("upravil_kdo") @db.NVarChar(200)
+  upravilUid String?  @map("upravil_uid") @db.NVarChar(128)
+  upravenoAt DateTime @default(now()) @map("upraveno_at") @db.DateTime2
+
+  zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
+
+  @@map("dilenske_udaje")
 }
 
 /// Poznámka mechanika nebo poradce.

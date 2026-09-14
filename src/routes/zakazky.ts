@@ -17,6 +17,7 @@ export const sVazbami = {
   // je ten platný a appka zobrazuje i sled, jak šly za sebou.
   dilenskeZaznamy: { orderBy: { zadanoAt: "desc" } },
   poznamky: { orderBy: { vytvorenoAt: "desc" } },
+  dilenskeUdaje: true,
 } as const;
 
 type ZakazkaSVazbami = Prisma.HeliosZakazkaGetPayload<{
@@ -30,6 +31,8 @@ export function doOdpovedi(zakazka: ZakazkaSVazbami, typy: TypyZakazek) {
     licensePlate: zakazka.spz ?? "",
     model: zakazka.model ?? "",
     customerName: zakazka.zakaznik ?? "",
+    // Co se na voze opravuje. Zapisuje dílna ručně, Helios to nezná.
+    repairSubject: zakazka.dilenskeUdaje?.predmetOpravy ?? null,
     // Dílenský stav: poslední záznam, nebo null u zakázky, které ho
     // ještě nikdo nedal. Není to výčet - je to text z číselníku.
     status: zakazka.dilenskeZaznamy[0]?.nazev ?? null,
@@ -134,6 +137,8 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
             { spz: { contains: dotaz } },
             { spz: { contains: bezMezer } },
             { zakaznik: { contains: dotaz } },
+            // "nárazník" najde zakázky, kde je v předmětu opravy.
+            { dilenskeUdaje: { is: { predmetOpravy: { contains: dotaz } } } },
           ],
         },
         include: sVazbami,
@@ -315,6 +320,59 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
             telo.data.author ??
             "Neznámý",
           autorUid: request.zamestnanec?.uid ?? null,
+        },
+      });
+
+      const aktualni = await prisma.heliosZakazka.findUniqueOrThrow({
+        where: { cisloZakazky: zakazka.cisloZakazky },
+        include: sVazbami,
+      });
+      return doOdpovedi(aktualni, await nactiTypyZakazek());
+    },
+  );
+
+  /**
+   * Předmět opravy - co se na voze opravuje. Přepisuje se celý; prázdný
+   * text ho smaže. Upravit smí kdokoli přihlášený, stejně jako stavy.
+   */
+  const predmetSchema = z.object({
+    text: z.string().max(1000),
+  });
+
+  server.put<{ Params: { id: string } }>(
+    "/orders/:id/repair-subject",
+    async (request, reply) => {
+      const telo = predmetSchema.safeParse(request.body);
+      if (!telo.success) {
+        return reply.code(400).send({
+          error: {
+            code: "bad_request",
+            message: "Předmět opravy je příliš dlouhý (nejvýš 1000 znaků).",
+          },
+        });
+      }
+
+      const zakazka = await nactiJednu(request.params.id);
+      if (!zakazka) return reply.code(404).send(nenalezena);
+
+      const text = telo.data.text.trim() || null;
+      const kdo =
+        request.zamestnanec?.jmeno ?? request.zamestnanec?.email ?? null;
+      const uid = request.zamestnanec?.uid ?? null;
+
+      await prisma.dilenskeUdaje.upsert({
+        where: { cisloZakazky: zakazka.cisloZakazky },
+        create: {
+          cisloZakazky: zakazka.cisloZakazky,
+          predmetOpravy: text,
+          upravilKdo: kdo,
+          upravilUid: uid,
+        },
+        update: {
+          predmetOpravy: text,
+          upravilKdo: kdo,
+          upravilUid: uid,
+          upravenoAt: new Date(),
         },
       });
 
