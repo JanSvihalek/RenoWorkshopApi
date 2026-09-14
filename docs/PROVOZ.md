@@ -22,8 +22,9 @@ na SQL Serveru**. Helios sám o RenoWorkshopu neví a nic se do něj nezapisuje.
 
 Pohledy nad Heliosem leží **v téže databázi** jako naše tabulky a do DMS
 sahají přes **linkovaný server**. Služba tak vystačí s jedním připojením
-a jedním loginem. Že se do Heliosu jen čte, hlídá mapování linkovaného
-serveru - vzdálený účet má práva pouze `SELECT`.
+a jedním loginem. Že se do Heliosu jen čte, hlídá **zatím jen kód**
+služby. Záměr je, aby to hlídala i práva vzdáleného účtu na Heliosu - to ale
+není ověřené, viz *Otevřené: práva účtu linkovaného serveru na Heliosu*.
 
 ## Přihlášení
 
@@ -345,6 +346,60 @@ nesysadmin login nevidí - vracejí prázdno místo chyby, což mate.
 Dokud tohle platí, **nepublikovat službu ven** (viz níž): případný průlom
 do procesu by dal k dispozici všemocný databázový účet a přes linkovaný
 server cestu k Heliosu. Ve vnitřní síti je to únosné.
+
+## Otevřené: práva účtu linkovaného serveru na Heliosu
+
+Linkovaný server `RAS_HEN` se do Heliosu hlásí vzdáleným účtem
+`renoworkshop`. **Jaká práva ten účet na Heliosu má, nikdo neověřil.**
+
+Služba do Heliosu nezapisuje - zápisy jdou jen do tabulek v databázi
+RenoWorkshop a do Heliosu vede jen `select` z pohledů. To ale hlídá kód.
+Kdyby měl vzdálený účet víc než čtení, chyba v kódu nebo průnik do služby
+by mohly v Heliosu zapisovat a nic by je nezastavilo.
+
+Cílový stav - účet smí **číst jen tabulky, které pohledy používají**, nic
+víc. Ani `db_datareader`, ten by otevřel celou databázi Heliosu:
+
+```sql
+-- Na serveru Heliosu, v RNC_ostra
+GRANT SELECT ON lcs.ino_srvszak_hlavicka     TO renoworkshop;
+GRANT SELECT ON lcs.ino_srvszak_zakazka      TO renoworkshop;
+GRANT SELECT ON lcs.attribute_valuation_entry TO renoworkshop;
+GRANT SELECT ON lcs.subjekty                 TO renoworkshop;
+GRANT SELECT ON lcs.organizace               TO renoworkshop;
+GRANT SELECT ON lcs.kontaktni_osoby          TO renoworkshop;
+GRANT SELECT ON lcs.ino_vozidlo              TO renoworkshop;
+GRANT SELECT ON lcs.ino_znackamodel          TO renoworkshop;
+```
+
+a nesmí být v žádné roli, která dává zápis (`db_datawriter`, `db_owner`,
+serverová `sysadmin`). Až se k pohledům přidá tabulka, přibude sem i grant.
+
+Jak zjistit současný stav (na serveru Heliosu, jen čte metadata):
+
+```sql
+SELECT IS_SRVROLEMEMBER('sysadmin', N'renoworkshop') AS je_sysadmin;
+
+USE RNC_ostra;
+SELECT r.name AS role
+FROM sys.database_role_members m
+JOIN sys.database_principals r ON r.principal_id = m.role_principal_id
+JOIN sys.database_principals u ON u.principal_id = m.member_principal_id
+WHERE u.name = N'renoworkshop';
+
+SELECT permission_name, state_desc, OBJECT_NAME(major_id) AS objekt
+FROM sys.database_permissions
+WHERE grantee_principal_id = USER_ID(N'renoworkshop');
+```
+
+Souvisí to s *login služby má sysadmin* výš: jmenovité mapování
+`sp_addlinkedsrvlogin` se zadává heslem téhož účtu. Nejrozumnější je obojí
+udělat naráz - zúžit práva na Heliosu, založit jmenovité mapování a pak
+odebrat `sysadmin` na RENDCAPPu.
+
+**Pozor na ostatní uživatele `RAS_HEN`.** Linkovaný server může používat
+i něco jiného než RenoWorkshop. Měnit jen mapování pro login `renoworkshop`,
+catch-all nechat, dokud není jasné, kdo další přes něj chodí.
 
 ## Odkud telefony na server dosáhnou
 

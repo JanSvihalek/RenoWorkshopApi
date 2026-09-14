@@ -9,8 +9,9 @@ import { prisma } from "../db.js";
  * a přes **linkovaný server** sahají do Heliosu. Díky tomu stačí službě
  * jedno připojení - stejné, přes které zapisuje vlastní tabulky.
  *
- * Do Heliosu se jen čte. Zápis hlídá mapování linkovaného serveru:
- * vzdálený účet má práva pouze `SELECT`.
+ * Do Heliosu se jen čte - a hlídá to zatím jen tenhle kód: všechno tady
+ * je `select` z pohledů. Záměr je, aby zápis nedovolila ani práva vzdáleného
+ * účtu na Heliosu; to není ověřené, viz docs/PROVOZ.md.
  */
 
 export type ZakazkaZHeliosu = {
