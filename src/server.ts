@@ -7,6 +7,7 @@ import { synchronizuj } from './helios/sync.js';
 import { synchronizujHistorii } from './helios/historie.js';
 import { synchronizujVsechnyZavady } from './helios/zavady.js';
 import { synchronizujZrcadla } from './helios/zrcadla.js';
+import { fotkyRoutes } from './routes/fotky.js';
 import { vozidlaRoutes } from './routes/vozidla.js';
 import { zakazkyRoutes } from './routes/zakazky.js';
 
@@ -35,6 +36,7 @@ await server.register(
     chranene.addHook('preHandler', overPrihlaseni);
     await chranene.register(zakazkyRoutes);
     await chranene.register(vozidlaRoutes);
+    await chranene.register(fotkyRoutes);
   },
   { prefix: '/api' },
 );

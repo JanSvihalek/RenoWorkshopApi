@@ -106,6 +106,7 @@ model HeliosZakazka {
   dilenskeZaznamy DilenskyZaznam[]
   poznamky        Poznamka[]
   dilenskeUdaje   DilenskeUdaje?
+  fotky           Fotka[]
 
   @@index([utvarKod])
   // Seznam v telefonu se ptá právě takhle: aktivní, seřazené podle termínu.
@@ -348,6 +349,31 @@ model DilenskeUdaje {
   @@map("dilenske_udaje")
 }
 
+/// Fotka ve fotodokumentaci zakázky.
+///
+/// Soubor leží ve sdílené složce na souborovém serveru (`FOTO_ADRESAR`),
+/// tady je jen záznam. `cesta` je relativní vůči `FOTO_ADRESAR`, ať se dá
+/// úložiště přestěhovat změnou jedné proměnné.
+model Fotka {
+  /// Náhodné id - je i v názvu souboru, ať se dá dohledat z obou stran.
+  id           String   @id @db.NVarChar(30)
+  cisloZakazky String   @map("cislo_zakazky") @db.NVarChar(40)
+
+  /// Klíč kategorie (`exterier`, `poskozeni`...), viz src/domain/fotky.ts.
+  kategorie    String   @db.NVarChar(40)
+  cesta        String   @db.NVarChar(400)
+  velikost     Int
+
+  nahralKdo    String?  @map("nahral_kdo") @db.NVarChar(200)
+  nahralUid    String?  @map("nahral_uid") @db.NVarChar(128)
+  nahranoAt    DateTime @map("nahrano_at") @db.DateTime2
+
+  zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
+
+  @@index([cisloZakazky, nahranoAt])
+  @@map("fotky")
+}
+
 /// Poznámka mechanika nebo poradce.
 model Poznamka {
   id           String   @id @default(uuid()) @db.NVarChar(40)
@@ -384,6 +410,10 @@ model Poradac {
 
   /// Krátký název pro appku, např. `BMW BSL`.
   nazev         String @db.NVarChar(100)
+
+  /// Složka pobočky ve fotodokumentaci (`Brno`, `Cestlice`...). `null` =
+  /// fotky zakázek z tohoto pořadače jdou do složky `Nezarazeno`.
+  slozka        String? @db.NVarChar(50)
 
   @@map("poradace")
 }

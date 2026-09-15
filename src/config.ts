@@ -27,6 +27,11 @@ const schema = z.object({
 
   FIREBASE_PROJECT_ID: z.string().min(1),
 
+  // Kořen fotodokumentace ve sdílené složce, např.
+  // \\renocar.local\share\Foto-doc. Bez něj služba běží, jen fotky
+  // nejde nahrát ani zobrazit (odpověď 503).
+  FOTO_ADRESAR: z.string().min(1).optional(),
+
   PORT: z.coerce.number().int().default(8092),
   // Jen zevnitř serveru; zvenčí se chodí přes reverzní proxy v IIS.
   HOST: z.string().default('127.0.0.1'),
