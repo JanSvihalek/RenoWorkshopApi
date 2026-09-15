@@ -288,6 +288,53 @@ z těla požadavku.
 Filtrování, hledání a řazení dělá aplikace u sebe nad načteným seznamem,
 takže se při každém ťuknutí nechodí na server.
 
+## Fotodokumentace
+
+Fotky z příjmu vozidla **neleží na RENDCAPPu**, ale ve sdílené složce na
+RENDCFILE. Telefon na ni nesahá - fotku pošle službě a ta ji zapíše; stejně
+tak ji přes službu stahuje, s přihlášením.
+
+```
+\\renocar.local\share\Foto-doc\<pobočka>\<číslo zakázky>\<kategorie>\20260915-103012-1e7b44c8.jpg
+```
+
+- **Pobočka** se bere z pořadače zakázky, sloupec `poradace.slozka`
+  (Brno, Cestlice, Ceska, KCP, Bubenec). Pořadač bez složky, nebo zakázka
+  bez pořadače, jde do `Nezarazeno` - nic se neztratí, jen se pak musí
+  přesunout ručně. Nový pořadač = doplnit mu složku v tabulce.
+- **Kategorie** jsou podsložky `Exterier`, `Poskozeni`, `Disky-a-kola`,
+  `Nalepka-STK`, `Interier`, `Tachometr`, `VIN`, `Ostatni`. Názvy jsou bez
+  diakritiky schválně, aby cesta prošla i starším nástrojem.
+- V tabulce `fotky` je ke každé fotce relativní cesta, kategorie, velikost,
+  kdo a kdy ji nahrál. Soubor bez řádku v tabulce aplikace neukáže.
+- Aplikace posílá fotku zmenšenou na 2000 px (asi půl megabajtu). Služba
+  přijme jen JPEG do 15 MB.
+
+**Nastavení** - v `.env` služby:
+
+```
+FOTO_ADRESAR='\\renocar.local\share\Foto-doc'
+```
+
+V apostrofech, ne v uvozovkách - tam by Node změnil `\n` na nový řádek.
+
+Bez něj služba běží dál, jen fotkové endpointy vrací `503` a aplikace
+napíše, že úložiště fotek není nastavené.
+
+**Práva** - do složky zapisuje účet, pod kterým běží Node. Dokud běží
+v konzoli pod tvým přihlášením, zapisuje se tvými právy. Až bude služba
+přes NSSM, musí to být **doménový účet** s právem zápisu a mazání
+ve `Foto-doc` (lokální účet `Local System` na sdílenou složku jiného
+serveru nedosáhne). Když zápis selže, vrací služba `502` a v logu je
+přesná chyba systému souborů.
+
+**IIS** - reverzní proxy má výchozí limit velikosti požadavku kolem 30 MB
+(`maxAllowedContentLength`), na fotky stačí. Kdyby nahrávání padalo
+s `413`, je to první místo, kam se podívat.
+
+**Mazání** - smazání fotky v aplikaci smaže soubor i řádek. Prázdné složky
+zakázek po sobě nechává; nevadí.
+
 ## Co se stane, když něco selže
 
 | Situace | Co uvidí mechanik | Co s tím |
@@ -295,6 +342,7 @@ takže se při každém ťuknutí nechodí na server.
 | Helios nebo linkovaný server neodpovídá | data se přestanou obnovovat, poslední stav zůstane | `GET /health` ukáže chybu posledního běhu |
 | databáze RenoWorkshop nedostupná | „Server hlásí chybu. Zkuste to za chvíli." | zkontrolovat SQL Server a login |
 | vypršelý token | „Přihlášení vypršelo." a návrat na přihlášení | přihlásit se znovu |
+| RENDCFILE nedostupný nebo chybí práva | fotka zůstane v telefonu s červeným rámečkem, jde poslat znovu | ověřit zápis účtu služby do `Foto-doc` |
 | telefon bez signálu | „Server neodpovídá." po 15 vteřinách | zatím se posun stavu ztratí, offline fronta není |
 | zakázka uzavřena v Heliosu | zmizí ze seznamu po nejbližší synchronizaci | tak to má být |
 
