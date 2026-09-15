@@ -288,6 +288,26 @@ z těla požadavku.
 Filtrování, hledání a řazení dělá aplikace u sebe nad načteným seznamem,
 takže se při každém ťuknutí nechodí na server.
 
+## Příjem vozidla
+
+Při příjmu technik v aplikaci projde checklist kontrol (záložka Příjem,
+nebo karta Příjem vozidla v detailu zakázky). Každé zaškrtnutí se ukládá
+hned; příjem jde dokončit, až je vyplněné všechno včetně data platnosti
+STK. Dokončený příjem je zamčený, dokud ho někdo v aplikaci znovu
+neotevře.
+
+**Checklist se spravuje v databázi**, tabulka `prijem_kontroly_ciselnik`:
+
+- nová kontrola = nový řádek (`kod`, `nazev`, `typ` = `kontrola` nebo
+  `datum`, `poradi`); v telefonech se objeví hned a je povinná,
+- vyřazená kontrola = `je_aktivni = 0`; u hotových příjmů zůstane vidět,
+  nové ji nevyžadují,
+- přejmenování se u už vyplněných příjmů neprojeví zpětně - položka si
+  drží název z doby vyplnění.
+
+Vyplněné příjmy jsou v `prijmy` (kdo a kdy začal a dokončil) a
+`prijem_polozky` (co bylo zaškrtnuto, datum STK, poznámky).
+
 ## Fotodokumentace
 
 Fotky z příjmu vozidla **neleží na RENDCAPPu**, ale ve sdílené složce na
