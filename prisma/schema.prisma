@@ -107,6 +107,7 @@ model HeliosZakazka {
   poznamky        Poznamka[]
   dilenskeUdaje   DilenskeUdaje?
   fotky           Fotka[]
+  prijem          Prijem?
 
   @@index([utvarKod])
   // Seznam v telefonu se ptá právě takhle: aktivní, seřazené podle termínu.
@@ -372,6 +373,62 @@ model Fotka {
 
   @@index([cisloZakazky, nahranoAt])
   @@map("fotky")
+}
+
+/// Checklist příjmu vozidla - co má technik při příjmu na voze
+/// zkontrolovat. Spravuje se v databázi: nová kontrola se v telefonech
+/// objeví sama a hned je povinná.
+model PrijemKontrolaCiselnik {
+  kod    String @id @db.NVarChar(40)
+  nazev  String @db.NVarChar(200)
+  /// `kontrola` = zaškrtnout, `datum` = zapsat datum (platnost STK).
+  typ    String @default("kontrola") @db.NVarChar(20)
+  poradi Int    @default(0)
+  /// Vyřazená kontrola se přestane nabízet a vyžadovat, u hotových
+  /// příjmů zůstane.
+  jeAktivni Boolean @default(true) @map("je_aktivni")
+
+  @@map("prijem_kontroly_ciselnik")
+}
+
+/// Příjem vozidla k zakázce. Jeden na zakázku; vzniká první vyplněnou
+/// položkou checklistu.
+model Prijem {
+  cisloZakazky String    @id @map("cislo_zakazky") @db.NVarChar(40)
+  zahajilKdo   String?   @map("zahajil_kdo") @db.NVarChar(200)
+  zahajilUid   String?   @map("zahajil_uid") @db.NVarChar(128)
+  zahajenoAt   DateTime  @default(now()) @map("zahajeno_at") @db.DateTime2
+  /// `null` = rozpracovaný. Dokončit jde jen s vyplněným checklistem.
+  dokoncilKdo  String?   @map("dokoncil_kdo") @db.NVarChar(200)
+  dokoncilUid  String?   @map("dokoncil_uid") @db.NVarChar(128)
+  dokoncenoAt  DateTime? @map("dokonceno_at") @db.DateTime2
+
+  zakazka HeliosZakazka   @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
+  polozky PrijemPolozka[]
+
+  @@map("prijmy")
+}
+
+/// Vyplněná položka checklistu. Název a typ v době vyplnění -
+/// přejmenování v číselníku nemění, co technik při příjmu potvrdil.
+model PrijemPolozka {
+  cisloZakazky String   @map("cislo_zakazky") @db.NVarChar(40)
+  kod          String   @db.NVarChar(40)
+  nazev        String   @db.NVarChar(200)
+  typ          String   @db.NVarChar(20)
+  splneno      Boolean  @default(false)
+  /// U typu `datum` datum ve tvaru RRRR-MM-DD.
+  hodnota      String?  @db.NVarChar(40)
+  /// Co technik při kontrole našel („prasklina v rohu skla").
+  poznamka     String?  @db.NVarChar(500)
+  zmenilKdo    String?  @map("zmenil_kdo") @db.NVarChar(200)
+  zmenilUid    String?  @map("zmenil_uid") @db.NVarChar(128)
+  zmenenoAt    DateTime @default(now()) @map("zmeneno_at") @db.DateTime2
+
+  prijem Prijem @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
+
+  @@id([cisloZakazky, kod])
+  @@map("prijem_polozky")
 }
 
 /// Poznámka mechanika nebo poradce.

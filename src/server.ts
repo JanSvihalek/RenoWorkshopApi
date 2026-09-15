@@ -8,6 +8,7 @@ import { synchronizujHistorii } from './helios/historie.js';
 import { synchronizujVsechnyZavady } from './helios/zavady.js';
 import { synchronizujZrcadla } from './helios/zrcadla.js';
 import { fotkyRoutes } from './routes/fotky.js';
+import { prijemRoutes } from './routes/prijem.js';
 import { vozidlaRoutes } from './routes/vozidla.js';
 import { zakazkyRoutes } from './routes/zakazky.js';
 
@@ -37,6 +38,7 @@ await server.register(
     await chranene.register(zakazkyRoutes);
     await chranene.register(vozidlaRoutes);
     await chranene.register(fotkyRoutes);
+    await chranene.register(prijemRoutes);
   },
   { prefix: '/api' },
 );
