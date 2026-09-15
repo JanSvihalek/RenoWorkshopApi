@@ -6,9 +6,12 @@ import {
   bezpecnyNazev,
   jeJpeg,
   jeKategorie,
+  najdiPobocku,
+  nazevPobocky,
   NEZARAZENO,
   plnaCesta,
   relativniCesta,
+  slozkyPobocek,
 } from "../src/domain/fotky.js";
 
 describe("cesta fotky", () => {
@@ -53,6 +56,46 @@ describe("cesta fotky", () => {
     );
     expect(plnaCesta(koren, path.join("..", "jinde.jpg"))).toBeNull();
     expect(plnaCesta(koren, "")).toBeNull();
+  });
+});
+
+describe("pobočky", () => {
+  const polozka = (name: string, slozka = true) => ({
+    name,
+    isDirectory: () => slozka,
+  });
+
+  it("nabídne jen složky poboček, bez Nezarazeno a skrytých", () => {
+    expect(
+      slozkyPobocek([
+        polozka("KCP"),
+        polozka("Nezarazeno"),
+        polozka("Brno"),
+        polozka(".snapshot"),
+        polozka("navod.docx", false),
+        polozka("Čestlice"),
+      ]),
+    ).toEqual(["Brno", "Čestlice", "KCP"]);
+  });
+
+  it("zvolenou pobočku najde bez ohledu na velikost písmen", () => {
+    const slozky = ["Brno", "Cestlice", "KCP"];
+    expect(najdiPobocku(" brno ", slozky)).toBe("Brno");
+    expect(najdiPobocku("kcp", slozky)).toBe("KCP");
+  });
+
+  it("složka pobočky si nechá diakritiku, ale z úložiště neuteče", () => {
+    expect(nazevPobocky("Bubeneč")).toBe("Bubeneč");
+    expect(nazevPobocky("..\\..\\Windows")).toBe(NEZARAZENO);
+    expect(nazevPobocky("Brno/../x")).toBe(NEZARAZENO);
+    expect(nazevPobocky("  ")).toBe(NEZARAZENO);
+  });
+
+  it("neexistující pobočku odmítne, ať nevznikne nová složka", () => {
+    const slozky = ["Brno", "KCP"];
+    expect(najdiPobocku("Brnoo", slozky)).toBeNull();
+    expect(najdiPobocku("..", slozky)).toBeNull();
+    expect(najdiPobocku("", slozky)).toBeNull();
   });
 });
 

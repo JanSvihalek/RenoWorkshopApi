@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { FastifyInstance, FastifyReply } from "fastify";
@@ -10,8 +10,10 @@ import { prisma } from "../db.js";
 import {
   jeJpeg,
   jeKategorie,
+  najdiPobocku,
   plnaCesta,
   relativniCesta,
+  slozkyPobocek,
 } from "../domain/fotky.js";
 
 /**
@@ -68,6 +70,27 @@ export async function fotkyRoutes(server: FastifyInstance): Promise<void> {
     (_request, body, done) => done(null, body),
   );
 
+  /**
+   * Složky poboček ve Foto-doc - nabídka pro nastavení aplikace. Čte se
+   * přímo ze sdílené složky, takže novou pobočku stačí založit jako složku.
+   */
+  server.get("/photos/branches", async (request, reply) => {
+    const koren = config.FOTO_ADRESAR;
+    if (!koren) return bezUloziste(reply);
+
+    try {
+      return slozkyPobocek(await readdir(koren, { withFileTypes: true }));
+    } catch (chyba) {
+      request.log.error({ chyba, koren }, "Složky poboček nejdou přečíst");
+      return reply.code(502).send({
+        error: {
+          code: "photo_storage_failed",
+          message: "Složku fotodokumentace se nepodařilo přečíst.",
+        },
+      });
+    }
+  });
+
   /** Fotky zakázky, nejnovější první. */
   server.get<{ Params: { id: string } }>(
     "/orders/:id/photos",
@@ -90,8 +113,14 @@ export async function fotkyRoutes(server: FastifyInstance): Promise<void> {
    * Nahrání jedné fotky do kategorie. Soubor se nejdřív zapíše pod dočasným
    * jménem a pak přejmenuje - kolega, který zrovna prochází složku,
    * neuvidí napůl zapsanou fotku.
+   *
+   * Pobočku (`branch`) posílá aplikace, když ji má technik zvolenou
+   * v nastavení; musí to být existující složka. Bez ní rozhodne pořadač.
    */
-  server.post<{ Params: { id: string }; Querystring: { category?: string } }>(
+  server.post<{
+    Params: { id: string };
+    Querystring: { category?: string; branch?: string };
+  }>(
     "/orders/:id/photos",
     async (request, reply) => {
       const koren = config.FOTO_ADRESAR;
@@ -117,18 +146,43 @@ export async function fotkyRoutes(server: FastifyInstance): Promise<void> {
       });
       if (!zakazka) return reply.code(404).send(nenalezena);
 
-      const poradac =
-        zakazka.cisloPoradace === null
-          ? null
-          : await prisma.poradac.findUnique({
-              where: { cisloPoradace: zakazka.cisloPoradace },
-              select: { slozka: true },
-            });
+      let slozkaPobocky: string | null = null;
+      const pozadovana = request.query.branch?.trim();
+      if (pozadovana) {
+        let slozky: string[];
+        try {
+          slozky = slozkyPobocek(await readdir(koren, { withFileTypes: true }));
+        } catch (chyba) {
+          request.log.error({ chyba, koren }, "Složky poboček nejdou přečíst");
+          return reply.code(502).send({
+            error: {
+              code: "photo_storage_failed",
+              message:
+                "Fotku se nepodařilo uložit na souborový server. Zkuste to znovu.",
+            },
+          });
+        }
+        slozkaPobocky = najdiPobocku(pozadovana, slozky);
+        if (!slozkaPobocky) {
+          return reply.code(400).send({
+            error: {
+              code: "unknown_branch",
+              message: `Pobočka „${pozadovana}" ve fotodokumentaci není. Vyberte ji v nastavení znovu.`,
+            },
+          });
+        }
+      } else if (zakazka.cisloPoradace !== null) {
+        const poradac = await prisma.poradac.findUnique({
+          where: { cisloPoradace: zakazka.cisloPoradace },
+          select: { slozka: true },
+        });
+        slozkaPobocky = poradac?.slozka ?? null;
+      }
 
       const id = randomBytes(12).toString("hex");
       const cas = new Date();
       const relativni = relativniCesta({
-        slozkaPobocky: poradac?.slozka ?? null,
+        slozkaPobocky,
         cisloZakazky: zakazka.cisloZakazky,
         kategorie,
         cas,

@@ -298,10 +298,19 @@ tak ji přes službu stahuje, s přihlášením.
 \\renocar.local\share\Foto-doc\<pobočka>\<číslo zakázky>\<kategorie>\20260915-103012-1e7b44c8.jpg
 ```
 
-- **Pobočka** se bere z pořadače zakázky, sloupec `poradace.slozka`
+- **Pobočka** je složka, kterou má technik zvolenou v nastavení aplikace
+  (karta Fotodokumentace). Nabídka se čte přímo ze složek ve `Foto-doc`,
+  takže **novou pobočku stačí založit jako složku**; `Nezarazeno` a skryté
+  složky se nenabízejí. Zvolenou složku služba při nahrání ověří - když
+  mezitím zmizela nebo se přejmenovala, fotku odmítne a aplikace řekne,
+  ať technik pobočku vybere znovu.
+- **Bez volby** rozhoduje pořadač zakázky, sloupec `poradace.slozka`
   (Brno, Cestlice, Ceska, KCP, Bubenec). Pořadač bez složky, nebo zakázka
   bez pořadače, jde do `Nezarazeno` - nic se neztratí, jen se pak musí
   přesunout ručně. Nový pořadač = doplnit mu složku v tabulce.
+- Volba je v telefonu, ne u účtu. Dva technici na různých pobočkách tak
+  mohou jednu zakázku nafotit do dvou složek - v aplikaci jsou fotky
+  pohromadě, na sdílené složce ne.
 - **Kategorie** jsou podsložky `Exterier`, `Poskozeni`, `Disky-a-kola`,
   `Nalepka-STK`, `Interier`, `Tachometr`, `VIN`, `Ostatni`. Názvy jsou bez
   diakritiky schválně, aby cesta prošla i starším nástrojem.
