@@ -521,7 +521,24 @@ Různé `cislo_subjektu` u stejného čísla = opravdu dvě zakázky, a pak by
 se klíč zakázky měl změnit na `cislo_subjektu`. Stejné `cislo_subjektu`
 dvakrát = chyba v joinu pohledu.
 
-## Otevřené: práva účtu linkovaného serveru na Heliosu
+## Práva účtu linkovaného serveru na Heliosu
+
+> **Vyřešeno 17. 9. 2026 (v SSMS).** Linkovaný server `RAS_HEN` míří na
+> **RENDCHENDB**. Login `renoworkshop` tam měl roli **`sysadmin`** - plnou
+> kontrolu nad celým serverem Heliosu. Teď má jen `public`, v `RNC_ostra`
+> uživatele bez rolí a **Select na deset objektů**: pohled
+> `lcs.attribute_valuation_entry` a tabulky `ino_srvszak_hlavicka`,
+> `uda_ino_srvszak_hlavicka`, `ino_srvszak_zakazka`, `ino_srvszak_zavady`,
+> `subjekty`, `organizace`, `kontaktni_osoby`, `ino_vozidlo`,
+> `ino_znackamodel`. Ověřeno: všech sedm pohledů `v_renoworkshop_*` čte.
+>
+> **Nový pohled nebo sloupec z jiné tabulky Heliosu** = na RENDCHENDB
+> přidat Select (RNC_ostra → Security → Users → renoworkshop → Securables),
+> jinak synchronizace spadne na *SELECT permission was denied*.
+> `attribute_valuation_entry` je v Heliosu pohled nad
+> `noris_attribute_valuation_entry` - právo stačí na pohled.
+
+Původní popis problému:
 
 Linkovaný server `RAS_HEN` se do Heliosu hlásí vzdáleným účtem
 `renoworkshop`. **Jaká práva ten účet na Heliosu má, nikdo neověřil.**
