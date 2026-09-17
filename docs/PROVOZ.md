@@ -537,6 +537,12 @@ dvakrát = chyba v joinu pohledu.
 > jinak synchronizace spadne na *SELECT permission was denied*.
 > `attribute_valuation_entry` je v Heliosu pohled nad
 > `noris_attribute_valuation_entry` - právo stačí na pohled.
+>
+> Role `public` v `RNC_ostra` má Execute na dvě procedury `uk.nsp_aritmeticky…`
+> a zápis do tabulek PowerBuilderu `pbcat*`. Procedury přes RenoWorkshop
+> spustit nejdou: `RAS_HEN` má **RPC Out = False** (a tak to má zůstat,
+> služba ho nepotřebuje). Zápis do `pbcat*` blokuje role
+> `db_denydatawriter`.
 
 Původní popis problému:
 
