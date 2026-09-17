@@ -45,6 +45,11 @@ GO
 EXEC sp_addrolemember N'db_datareader', N'renoworkshop';
 EXEC sp_addrolemember N'db_datawriter', N'renoworkshop';
 GO
+-- db_owner pryč - zjištěno v září 2026 (skript 1, A4). S ním by login
+-- i bez sysadmin mohl měnit strukturu, mazat tabulky a přidělovat práva.
+IF IS_ROLEMEMBER(N'db_owner', N'renoworkshop') = 1
+    EXEC sp_droprolemember N'db_owner', N'renoworkshop';
+GO
 
 -- D. Výchozí databáze loginu, ať se po odebrání sysadmin nepřipojuje
 --    do master.
@@ -64,6 +69,7 @@ SELECT IS_SRVROLEMEMBER('sysadmin') AS stale_sysadmin;         -- 0
 SELECT TOP 5 * FROM dbo.v_renoworkshop_zakazky;                  -- vrátí zakázky
 SELECT HAS_PERMS_BY_NAME(N'dbo.helios_zakazky', N'OBJECT', N'UPDATE') AS zapisuje_zakazky;  -- 1
 SELECT HAS_PERMS_BY_NAME(N'RenoWorkshop', N'DATABASE', N'ALTER') AS meni_strukturu;          -- 0
+SELECT IS_ROLEMEMBER(N'db_owner') AS je_db_owner;                                            -- 0
 SELECT HAS_PERMS_BY_NAME(NULL, NULL, N'CONTROL SERVER') AS spravuje_server;                  -- 0
 REVERT;
 GO
