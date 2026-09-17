@@ -7,6 +7,7 @@ import { synchronizuj } from './helios/sync.js';
 import { synchronizujHistorii } from './helios/historie.js';
 import { synchronizujVsechnyZavady } from './helios/zavady.js';
 import { synchronizujZrcadla } from './helios/zrcadla.js';
+import { smazStarePristupy, zaznamenavejPristupy } from './log-pristupu.js';
 import { fotkyRoutes } from './routes/fotky.js';
 import { prijemRoutes } from './routes/prijem.js';
 import { vozidlaRoutes } from './routes/vozidla.js';
@@ -34,6 +35,9 @@ server.get('/health', async () => {
 
 await server.register(
   async (chranene) => {
+    // Log přístupů i u odmítnutých (401) - pokusy bez přihlášení jsou
+    // pro bezpečnost to nejzajímavější.
+    zaznamenavejPristupy(chranene);
     chranene.addHook('preHandler', overPrihlaseni);
     await chranene.register(zakazkyRoutes);
     await chranene.register(vozidlaRoutes);
@@ -110,6 +114,16 @@ async function nocniBeh(): Promise<void> {
     );
   } catch (chyba) {
     server.log.error({ chyba }, 'Noční synchronizace závad selhala');
+  }
+
+  try {
+    const smazano = await smazStarePristupy();
+    server.log.info(
+      { smazano, dni: config.LOG_UCHOVANI_DNI },
+      'Staré záznamy logu přístupů smazány',
+    );
+  } catch (chyba) {
+    server.log.error({ chyba }, 'Mazání starého logu přístupů selhalo');
   }
 }
 

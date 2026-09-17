@@ -364,6 +364,56 @@ s `413`, je to první místo, kam se podívat.
 **Mazání** - smazání fotky v aplikaci smaže soubor i řádek. Prázdné složky
 zakázek po sobě nechává; nevadí.
 
+## Log přístupů
+
+Služba zapisuje každý požadavek z aplikace do tabulky `log_pristupu`
+v databázi RenoWorkshop: **kdo** (e-mail firemního účtu), **kdy** (místní
+čas serveru), **co** (vzor volání, např. `/api/orders/:id/notes`), **u které
+zakázky**, jak to dopadlo (HTTP stav), jak dlouho to trvalo a chybovou
+zprávu. Zapisují se i odmítnuté pokusy bez přihlášení (stav 401).
+
+**Neukládá se obsah** - text poznámek, fotky ani hledaný text (SPZ, jméno
+zákazníka z hledání).
+
+- **Účel:** bezpečnost a dohledání chyb. Ne hodnocení práce lidí.
+- **Uchování:** 90 dní (`LOG_UCHOVANI_DNI`), starší záznamy maže noční běh.
+- **Přístup:** jen admin databáze přes SSMS; aplikace log nezobrazuje.
+- Zápis nečeká na databázi a nikdy neshodí požadavek. Když tabulka chybí
+  nebo databáze mlčí, služba jede dál a v konzoli jednou za 10 minut
+  varuje.
+- Založení tabulky: [`docs/sql/log-pristupu.sql`](sql/log-pristupu.sql)
+  (před nasazením služby).
+
+Užitečné dotazy:
+
+```sql
+-- Kdo byl dnes aktivní
+SELECT email, MIN(cas) AS prvni, MAX(cas) AS posledni, COUNT(*) AS pozadavku
+FROM dbo.log_pristupu
+WHERE cas >= CAST(GETDATE() AS date)
+GROUP BY email
+ORDER BY posledni DESC;
+
+-- Chyby za posledních 24 hodin
+SELECT cas, email, metoda, cesta, zakazka, stav, chyba
+FROM dbo.log_pristupu
+WHERE stav >= 400 AND cas >= DATEADD(day, -1, GETDATE())
+ORDER BY cas DESC;
+
+-- Co se dělo se zakázkou
+SELECT cas, email, metoda, cesta, parametry, stav, chyba
+FROM dbo.log_pristupu
+WHERE zakazka = N'Z1212600123'
+ORDER BY cas;
+
+-- Pokusy bez přihlášení (odkud)
+SELECT ip, COUNT(*) AS pokusu, MAX(cas) AS posledni
+FROM dbo.log_pristupu
+WHERE stav = 401 AND cas >= DATEADD(day, -7, GETDATE())
+GROUP BY ip
+ORDER BY pokusu DESC;
+```
+
 ## Co se stane, když něco selže
 
 | Situace | Co uvidí mechanik | Co s tím |

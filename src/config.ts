@@ -32,6 +32,9 @@ const schema = z.object({
   // nejde nahrát ani zobrazit (odpověď 503).
   FOTO_ADRESAR: z.string().min(1).optional(),
 
+  // Kolik dní se drží log přístupů (kdo, kdy, co). Starší se v noci maže.
+  LOG_UCHOVANI_DNI: z.coerce.number().int().min(7).max(365).default(90),
+
   PORT: z.coerce.number().int().default(8092),
   // Jen zevnitř serveru; zvenčí se chodí přes reverzní proxy v IIS.
   HOST: z.string().default('127.0.0.1'),

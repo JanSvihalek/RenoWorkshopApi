@@ -446,6 +446,30 @@ model Poznamka {
   @@map("poznamky")
 }
 
+/// Log přístupů do služby - kdo, kdy, co a jak to dopadlo. Kvůli
+/// bezpečnosti a dohledání chyb; obsah požadavků se neukládá. Starší než
+/// LOG_UCHOVANI_DNI se v noci maže. Viz src/domain/log-pristupu.ts.
+model ZaznamPristupu {
+  id        BigInt   @id @default(autoincrement())
+  /// Místní čas serveru - vyplní databáze.
+  cas       DateTime @default(dbgenerated("sysdatetime()")) @db.DateTime2
+  email     String?  @db.NVarChar(200)
+  uid       String?  @db.NVarChar(128)
+  ip        String?  @db.NVarChar(64)
+  metoda    String   @db.NVarChar(10)
+  cesta     String   @db.NVarChar(200)
+  zakazka   String?  @db.NVarChar(40)
+  parametry String?  @db.NVarChar(200)
+  stav      Int
+  trvaniMs  Int      @map("trvani_ms")
+  chyba     String?  @db.NVarChar(2000)
+
+  @@index([cas])
+  @@index([email, cas])
+  @@index([zakazka, cas])
+  @@map("log_pristupu")
+}
+
 /// Záznam o průběhu synchronizace - ať jde poznat, že Helios mlčí,
 /// dřív než se na to někdo zeptá.
 model Synchronizace {
