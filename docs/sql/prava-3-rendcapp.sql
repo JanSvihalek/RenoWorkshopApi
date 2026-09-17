@@ -10,20 +10,42 @@
 -- !!! Do kroku A se vkládá heslo účtu na Heliosu. Soubor s heslem
 -- !!! NEUKLÁDEJ a necommituj - heslo vlož jen do okna SSMS.
 --
--- Služba může běžet. Když krok E shodí synchronizaci, vrácení je na konci.
+-- Služba může běžet. Když krok E shodí synchronizaci, vrácení je u kroku G.
+-- Krok H (zrušení catch-all) spouštěj zvlášť, až služba po kroku G běží.
 
 USE master;
 GO
 
--- A. Jmenovité mapování na linkovaném serveru - jen pro login renoworkshop.
---    Catch-all pro ostatní loginy zůstává, jak je (viz skript 1, A6).
---    Bez tohohle padá nesysadmin login na chybě 7416 (zkoušeno v srpnu).
+-- A. Jmenovitá mapování na linkovaném serveru místo catch-all:
+--    - login služby renoworkshop (bez toho padá nesysadmin login na 7416,
+--      zkoušeno v srpnu),
+--    - login, pod kterým tenhle skript pouštíš - úpravy pohledů
+--      (CREATE/ALTER VIEW) se při uložení ověřují proti Heliosu a bez
+--      mapování by po kroku H skončily také na 7416.
+--    Oba jdou do Heliosu stejným účtem jen pro čtení (skript 2).
+DECLARE @heslo nvarchar(128) = N'<HESLO ÚČTU renoworkshop NA HELIOSU>';
+DECLARE @admin sysname = SUSER_SNAME();
+
 EXEC sp_addlinkedsrvlogin
     @rmtsrvname  = N'RAS_HEN',
     @useself     = N'FALSE',
     @locallogin  = N'renoworkshop',
     @rmtuser     = N'renoworkshop',
-    @rmtpassword = N'<HESLO ÚČTU renoworkshop NA HELIOSU>';
+    @rmtpassword = @heslo;
+
+IF @admin <> N'renoworkshop'
+    EXEC sp_addlinkedsrvlogin
+        @rmtsrvname  = N'RAS_HEN',
+        @useself     = N'FALSE',
+        @locallogin  = @admin,
+        @rmtuser     = N'renoworkshop',
+        @rmtpassword = @heslo;
+
+SELECT COALESCE(p.name, N'(catch-all)') AS mapovany_login, ll.remote_name
+FROM sys.servers AS s
+JOIN sys.linked_logins AS ll ON ll.server_id = s.server_id
+LEFT JOIN sys.server_principals AS p ON p.principal_id = ll.local_principal_id
+WHERE s.name = N'RAS_HEN';
 GO
 
 -- B. Vlastník databáze. Kdyby databázi vlastnil renoworkshop, byl by v ní
@@ -85,3 +107,32 @@ GO
 --   EXEC sp_addsrvrolemember N'renoworkshop', N'sysadmin';
 -- a poslat chybu z /health nebo z konzole služby.
 -- ---------------------------------------------------------------------
+
+
+-- H. Zrušení catch-all - AŽ PO KROKU G, když služba běží bez chyb.
+--
+--    Dnes se do Heliosu jako renoworkshop hlásí KAŽDÝ login na RENDCAPPu,
+--    a RENDCAPP hostí i cizí aplikace. Kontrola v září 2026: RAS_HEN
+--    nepoužívá žádný pohled, procedura ani úloha mimo RenoWorkshop a cache
+--    dotazů je prázdná. Po zrušení smí do Heliosu jen loginy z kroku A.
+USE master;
+GO
+EXEC sp_droplinkedsrvlogin @rmtsrvname = N'RAS_HEN', @locallogin = NULL;
+GO
+
+-- Ověření: služba i admin dál čtou, jiný login ne.
+USE RenoWorkshop;
+GO
+SELECT TOP 1 * FROM dbo.v_renoworkshop_zavady;          -- admin: projde
+EXECUTE AS LOGIN = N'renoworkshop';
+SELECT TOP 1 * FROM dbo.v_renoworkshop_zavady;          -- služba: projde
+REVERT;
+GO
+
+-- VRÁCENÍ catch-all, kdyby se ozvala jiná aplikace s chybou 7416
+-- „no login-mapping exists" (heslo stejné jako v kroku A):
+--   EXEC sp_addlinkedsrvlogin @rmtsrvname = N'RAS_HEN', @useself = N'FALSE',
+--        @locallogin = NULL, @rmtuser = N'renoworkshop',
+--        @rmtpassword = N'<HESLO>';
+-- Správná oprava je pak ale vlastní účet na Heliosu pro tu aplikaci,
+-- ne vracet jí přístup přes účet RenoWorkshopu.
