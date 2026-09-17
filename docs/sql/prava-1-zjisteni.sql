@@ -5,6 +5,10 @@
 --   ČÁST B - spusť na SQL Serveru Heliosu (admin tamního serveru)
 --
 -- Výsledky pošli, podle nich se doladí skripty 2 a 3.
+--
+-- NESPOUŠTĚJ CELÝ SOUBOR NARAZ na jednom serveru. Na RENDCAPPu označ jen
+-- část A a spusť označené (F5 spouští výběr); část B pak na serveru
+-- Heliosu. Databáze RNC_ostra na RENDCAPPu není.
 
 
 -- =====================================================================
@@ -14,6 +18,7 @@
 -- A1. Které tabulky Heliosu pohledy OPRAVDU čtou (ze serveru, ne z gitu -
 --     pohledy se upravují přímo v SSMS). Tyhle tabulky dostanou GRANT SELECT.
 USE RenoWorkshop;
+GO
 SELECT DISTINCT
     d.referenced_database_name AS databaze,
     d.referenced_schema_name   AS schema_,
@@ -54,6 +59,11 @@ JOIN sys.linked_logins AS ll ON ll.server_id = s.server_id
 LEFT JOIN sys.server_principals AS p ON p.principal_id = ll.local_principal_id
 WHERE s.name = N'RAS_HEN';
 
+-- A5b. Na který server a pod jakým jménem RAS_HEN míří - tam se pouští část B.
+SELECT name AS linkovany_server, data_source AS server_heliosu, catalog AS databaze
+FROM sys.servers
+WHERE name = N'RAS_HEN';
+
 -- A6. Kdo DALŠÍ používá RAS_HEN - pohledy a procedury ve všech databázích
 --     a úlohy SQL Agenta. Catch-all mapování se smí měnit, jen když tu
 --     není nic kromě RenoWorkshopu.
@@ -68,11 +78,14 @@ SELECT j.name AS uloha, s.step_name AS krok
 FROM msdb.dbo.sysjobs AS j
 JOIN msdb.dbo.sysjobsteps AS s ON s.job_id = j.job_id
 WHERE s.command LIKE N'%RAS_HEN%';
+GO
 
 
 -- =====================================================================
 -- ČÁST B - SQL Server Heliosu
 -- =====================================================================
+
+-- Spouštěj na serveru z dotazu A5b, ne na RENDCAPPu.
 
 -- B1. Serverová práva vzdáleného účtu.
 SELECT
@@ -81,8 +94,10 @@ SELECT
      JOIN sys.server_principals AS l ON l.principal_id = sp.grantee_principal_id
      WHERE l.name = N'renoworkshop' AND sp.permission_name = N'CONTROL SERVER'
        AND sp.state IN ('G', 'W')) AS ma_control_server;
+GO
 
 USE RNC_ostra;
+GO
 
 -- B2. Databázové role účtu v RNC_ostra.
 SELECT r.name AS role
