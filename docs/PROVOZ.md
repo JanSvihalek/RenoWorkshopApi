@@ -443,6 +443,13 @@ podle toho se pozná, co má tester v telefonu.
 
 ## Otevřené: login služby má sysadmin
 
+> **Postup (září 2026):** tři skripty v pořadí -
+> [`prava-1-zjisteni.sql`](sql/prava-1-zjisteni.sql) (jen čte, RENDCAPP
+> i server Heliosu), [`prava-2-helios.sql`](sql/prava-2-helios.sql) (účet
+> na Heliosu jen pro čtení deseti tabulek) a
+> [`prava-3-rendcapp.sql`](sql/prava-3-rendcapp.sql) (jmenovité mapování,
+> db_datareader + db_datawriter, odebrání sysadmin, ověření a vrácení).
+
 Login `renoworkshop` má na RENDCAPPu roli **`sysadmin`**. Je to víc, než
 služba potřebuje - stačilo by jí `db_datareader` a `db_datawriter`
 v databázi RenoWorkshop.
