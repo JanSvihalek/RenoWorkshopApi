@@ -4,6 +4,7 @@ import { nactiZakazky, type ZakazkaZHeliosu } from "./cteni.js";
 import { cislo, text } from "./prevod.js";
 import { synchronizujZavadyRozdelanych } from "./zavady.js";
 import { doplnChybejiciZrcadla } from "./zrcadla.js";
+import { mistniCas } from "../domain/cas.js";
 
 /**
  * Přenos zakázek z Heliosu do provozní databáze.
@@ -60,12 +61,12 @@ const DELKA_RADY = 50;
 
 export async function synchronizuj(): Promise<{ pocet: number }> {
   const beh = await prisma.synchronizace.create({
-    data: { zacatekAt: new Date() },
+    data: { zacatekAt: mistniCas() },
   });
 
   try {
     const zakazky = await nactiZakazky();
-    const ted = new Date();
+    const ted = mistniCas();
 
     // Pohled v_renoworkshop_zakazky má vracet jen rozdělané zakázky;
     // ukončené tahá zvlášť noční historie (historie.ts). Tahle pojistka je
@@ -141,7 +142,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
 
     await prisma.synchronizace.update({
       where: { id: beh.id },
-      data: { konecAt: new Date(), pocetZakazek: aktivni.length },
+      data: { konecAt: mistniCas(), pocetZakazek: aktivni.length },
     });
 
     // Až po zapsání zakázek a mimo jejich chybu: když se Helios na vozidlo
@@ -165,7 +166,7 @@ export async function synchronizuj(): Promise<{ pocet: number }> {
     await prisma.synchronizace.update({
       where: { id: beh.id },
       data: {
-        konecAt: new Date(),
+        konecAt: mistniCas(),
         chyba: chyba instanceof Error ? chyba.message : String(chyba),
       },
     });

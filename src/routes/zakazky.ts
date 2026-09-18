@@ -16,6 +16,7 @@ import {
 } from "../domain/poradace.js";
 import { pobockaZUtvaru, utvarProApi } from "../domain/utvar.js";
 import { synchronizujNaVyzadani } from "../helios/sync.js";
+import { mistniCas } from "../domain/cas.js";
 
 export const sVazbami = {
   // Celá historie dílenských stavů, nejnovější první - poslední záznam
@@ -487,7 +488,7 @@ export async function zakazkyRoutes(server: FastifyInstance): Promise<void> {
           predmetOpravy: text,
           upravilKdo: kdo,
           upravilUid: uid,
-          upravenoAt: new Date(),
+          upravenoAt: mistniCas(),
         },
       });
 

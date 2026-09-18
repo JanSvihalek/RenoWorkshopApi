@@ -11,6 +11,7 @@ import {
   typKontroly,
   type PolozkaPrijmu,
 } from "../domain/prijem.js";
+import { mistniCas } from "../domain/cas.js";
 
 /**
  * Příjem vozidla - checklist kontrol při příjmu zakázky.
@@ -205,7 +206,7 @@ export async function prijemRoutes(server: FastifyInstance): Promise<void> {
           nazev: kontrola.nazev,
           zmenilKdo: jmeno,
           zmenilUid: uid,
-          zmenenoAt: new Date(),
+          zmenenoAt: mistniCas(),
         },
       });
 
@@ -243,7 +244,7 @@ export async function prijemRoutes(server: FastifyInstance): Promise<void> {
         data: {
           dokoncilKdo: jmeno,
           dokoncilUid: uid,
-          dokoncenoAt: new Date(),
+          dokoncenoAt: mistniCas(),
         },
       });
       return doOdpovedi(await nactiPrijem(cisloZakazky));

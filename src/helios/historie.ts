@@ -3,6 +3,7 @@ import { nactiHistoriiZakazek, type ZakazkaZHeliosu } from "./cteni.js";
 import { ulozDavkove, type Radek, type Sloupec } from "./davka.js";
 import { cislo, text } from "./prevod.js";
 import { cisloPu, idHlavicky, radaReference } from "./sync.js";
+import { mistniCas } from "../domain/cas.js";
 
 /**
  * Historie zakázek: ukončené zakázky z Heliosu.
@@ -93,7 +94,7 @@ export function radekHistorie(z: ZakazkaZHeliosu, ted: Date): Radek {
  * zakázku, přeskočí se. Tu vede pětiminutový běh.
  */
 export async function synchronizujHistorii(): Promise<{ pocet: number }> {
-  const ted = new Date();
+  const ted = mistniCas();
 
   const radky = (await nactiHistoriiZakazek())
     .filter((z) => z.c_zakazky && jeUkoncena(z.stav_real))

@@ -20,6 +20,7 @@ import {
   type Sloupec,
 } from "./davka.js";
 import { cislo, text } from "./prevod.js";
+import { mistniCas } from "../domain/cas.js";
 
 /**
  * Zrcadla vozidel, zákazníků, modelů a kontaktů.
@@ -169,7 +170,7 @@ export type PocetyZrcadel = {
  * Patří do noci nebo do ručního spuštění, ne do pětiminutového cyklu.
  */
 export async function synchronizujZrcadla(): Promise<PocetyZrcadel> {
-  const ted = new Date();
+  const ted = mistniCas();
 
   // Postupně, ne najednou: čtyři souběžné dotazy přes linkovaný server by
   // Heliosu přitížily víc než čtyři za sebou a nic bychom tím nezískali.
@@ -229,7 +230,7 @@ function klice(radky: Klic[]): number[] {
  * prostě neexistuje.
  */
 export async function doplnChybejiciZrcadla(): Promise<PocetyZrcadel> {
-  const ted = new Date();
+  const ted = mistniCas();
 
   const idVozidel = klice(await prisma.$queryRaw<Klic[]>`
     select distinct z.vozidlo_id as id

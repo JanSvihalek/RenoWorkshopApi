@@ -364,6 +364,25 @@ s `413`, je to první místo, kam se podívat.
 **Mazání** - smazání fotky v aplikaci smaže soubor i řádek. Prázdné složky
 zakázek po sobě nechává; nevadí.
 
+## Časy
+
+**V databázi i v API je všude místní čas serveru, bez zóny.** Tak
+přicházejí data z Heliosu (datum přijetí, termín) a tak je aplikace
+i zobrazuje.
+
+Node ale počítá v UTC a Prisma tak časy i zapisovala: poznámka napsaná
+v 10:05 se uložila jako 08:05 a v aplikaci svítila o dvě hodiny dřív
+(v zimě o hodinu). Opraveno 18. 9. 2026 - časy, které zapisuje služba,
+jdou přes `mistniCas()` (`src/domain/cas.ts`), výchozí hodnoty vyplňuje
+databáze přes `SYSDATETIME()`.
+
+Starší řádky posune jednorázově
+[`docs/sql/cas-mistni.sql`](sql/cas-mistni.sql) - **až po nasazení** nové
+verze služby a jen jednou.
+
+Kdo přidává nový časový sloupec: hodnotu ber z `mistniCas()`, nikdy
+z `new Date()`, nebo ji nech vyplnit databázi.
+
 ## Log přístupů
 
 Služba zapisuje každý požadavek z aplikace do tabulky `log_pristupu`

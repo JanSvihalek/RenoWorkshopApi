@@ -11,6 +11,7 @@ import {
   type Sloupec,
 } from "./davka.js";
 import { cislo, text } from "./prevod.js";
+import { mistniCas } from "../domain/cas.js";
 
 /**
  * Závady (úkony) na zakázkách z Heliosu.
@@ -54,7 +55,7 @@ const KLICU_NA_MAZANI = 2000;
 export async function synchronizujZavadyRozdelanych(): Promise<{
   pocet: number;
 }> {
-  const ted = new Date();
+  const ted = mistniCas();
 
   const zakazky = await prisma.heliosZakazka.findMany({
     where: { jeAktivni: true, zakazkaId: { not: null } },
@@ -89,7 +90,7 @@ export async function synchronizujZavadyRozdelanych(): Promise<{
 
 /** Noční běh: závady všech zakázek. Nic nemaže. */
 export async function synchronizujVsechnyZavady(): Promise<{ pocet: number }> {
-  const ted = new Date();
+  const ted = mistniCas();
   const pocet = await ulozDavkove(
     "helios_zavady",
     "cislo_subjektu",

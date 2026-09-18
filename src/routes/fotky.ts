@@ -15,6 +15,7 @@ import {
   relativniCesta,
   slozkyPobocek,
 } from "../domain/fotky.js";
+import { mistniCas } from "../domain/cas.js";
 
 /**
  * Fotodokumentace zakázky - nahrání, výpis, stažení a smazání fotek.
@@ -180,7 +181,7 @@ export async function fotkyRoutes(server: FastifyInstance): Promise<void> {
       }
 
       const id = randomBytes(12).toString("hex");
-      const cas = new Date();
+      const cas = mistniCas();
       const relativni = relativniCesta({
         slozkaPobocky,
         cisloZakazky: zakazka.cisloZakazky,

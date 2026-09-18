@@ -317,7 +317,7 @@ model DilenskyZaznam {
 
   zadalKdo String?  @map("zadal_kdo") @db.NVarChar(200)
   zadalUid String?  @map("zadal_uid") @db.NVarChar(128)
-  zadanoAt DateTime @default(now()) @map("zadano_at") @db.DateTime2
+  zadanoAt DateTime @default(dbgenerated("sysdatetime()")) @map("zadano_at") @db.DateTime2
 
   zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
 
@@ -343,7 +343,7 @@ model DilenskeUdaje {
 
   upravilKdo String?  @map("upravil_kdo") @db.NVarChar(200)
   upravilUid String?  @map("upravil_uid") @db.NVarChar(128)
-  upravenoAt DateTime @default(now()) @map("upraveno_at") @db.DateTime2
+  upravenoAt DateTime @default(dbgenerated("sysdatetime()")) @map("upraveno_at") @db.DateTime2
 
   zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
 
@@ -397,7 +397,7 @@ model Prijem {
   cisloZakazky String    @id @map("cislo_zakazky") @db.NVarChar(40)
   zahajilKdo   String?   @map("zahajil_kdo") @db.NVarChar(200)
   zahajilUid   String?   @map("zahajil_uid") @db.NVarChar(128)
-  zahajenoAt   DateTime  @default(now()) @map("zahajeno_at") @db.DateTime2
+  zahajenoAt   DateTime  @default(dbgenerated("sysdatetime()")) @map("zahajeno_at") @db.DateTime2
   /// `null` = rozpracovaný. Dokončit jde jen s vyplněným checklistem.
   dokoncilKdo  String?   @map("dokoncil_kdo") @db.NVarChar(200)
   dokoncilUid  String?   @map("dokoncil_uid") @db.NVarChar(128)
@@ -423,7 +423,7 @@ model PrijemPolozka {
   poznamka     String?  @db.NVarChar(500)
   zmenilKdo    String?  @map("zmenil_kdo") @db.NVarChar(200)
   zmenilUid    String?  @map("zmenil_uid") @db.NVarChar(128)
-  zmenenoAt    DateTime @default(now()) @map("zmeneno_at") @db.DateTime2
+  zmenenoAt    DateTime @default(dbgenerated("sysdatetime()")) @map("zmeneno_at") @db.DateTime2
 
   prijem Prijem @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
 
@@ -438,7 +438,7 @@ model Poznamka {
   text         String   @db.NVarChar(Max)
   autor        String   @db.NVarChar(200)
   autorUid     String?  @map("autor_uid") @db.NVarChar(128)
-  vytvorenoAt  DateTime @default(now()) @map("vytvoreno_at") @db.DateTime2
+  vytvorenoAt  DateTime @default(dbgenerated("sysdatetime()")) @map("vytvoreno_at") @db.DateTime2
 
   zakazka HeliosZakazka @relation(fields: [cisloZakazky], references: [cisloZakazky], onDelete: Cascade)
 

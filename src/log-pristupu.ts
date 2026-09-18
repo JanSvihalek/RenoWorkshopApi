@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import { config } from "./config.js";
 import { prisma } from "./db.js";
+import { mistniCas } from "./domain/cas.js";
 import { chybaZOdpovedi, zaznamPristupu } from "./domain/log-pristupu.js";
 
 declare module "fastify" {
@@ -56,8 +57,9 @@ export function zaznamenavejPristupy(server: FastifyInstance): void {
 
 /** Smaže záznamy starší než `LOG_UCHOVANI_DNI`. Volá noční běh. */
 export async function smazStarePristupy(): Promise<number> {
-  const hranice = new Date(
-    Date.now() - config.LOG_UCHOVANI_DNI * 24 * 60 * 60 * 1000,
+  // V tabulce je místní čas (viz domain/cas.ts), tak i hranice.
+  const hranice = mistniCas(
+    new Date(Date.now() - config.LOG_UCHOVANI_DNI * 24 * 60 * 60 * 1000),
   );
   const { count } = await prisma.zaznamPristupu.deleteMany({
     where: { cas: { lt: hranice } },
